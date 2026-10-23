@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Credit Card Fraud Detection | Portfolio</title>
+  <meta name="description" content="Machine learning portfolio project: Credit Card Fraud Detection using Logistic Regression and Random Forest classifiers." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── HOME-ONLY STYLES ── */
+    .hero-number-strip {
+      position: absolute;
+      right: 0; top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border-left: 1px solid var(--border);
+      opacity: 0;
+      animation: fadeIn 1s 1.2s forwards;
+    }
+    .hero-number-strip .hn {
+      padding: 1.2rem 1.8rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hero-number-strip .hn:last-child { border-bottom: none; }
+    .hero-number-strip .hn-val {
+      font-family: var(--font-mono);
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
+    }
+    .hero-number-strip .hn-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+    @media (max-width: 900px) {
+      .hero-number-strip { display: none; }
+    }
+
+    /* Scan line effect on hero */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--red);
+      animation: scanLine 4s ease-in-out infinite;
+      opacity: 0.6;
+    }
+    @keyframes scanLine {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+
+    /* About section styles */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 4rem;
+      align-items: start;
+    }
+    @media (max-width: 768px) { .about-grid { grid-template-columns: 1fr; } }
+
+    .profile-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .profile-top {
+      height: 8px;
+      background: linear-gradient(90deg, var(--red), var(--red-dark));
+    }
+    .profile-body {
+      padding: 2rem;
+    }
+    .profile-avatar {
+      width: 72px; height: 72px;
+      background: var(--surface);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      border: 2px solid var(--border);
+    }
+    .profile-name {
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+    .profile-role {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      font-family: var(--font-mono);
+    }
+    .profile-field {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .profile-field:last-child { border-bottom: none; }
+    .profile-field .pf-key { color: var(--text-muted); }
+    .profile-field .pf-val { color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.78rem; }
+
+    /* Tech stack */
+    .tech-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .tech-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: all var(--transition);
+    }
+    .tech-item:hover {
+      border-color: var(--red);
+      background: var(--bg-card-hover);
+      transform: translateX(4px);
+    }
+    .tech-icon { font-size: 1.2rem; width: 28px; text-align: center; }
+    .tech-info { flex: 1; }
+    .tech-name { font-size: 0.88rem; font-weight: 600; }
+    .tech-sub { font-size: 0.72rem; color: var(--text-muted); }
+    .tech-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.5rem;
+      background: rgba(192,57,43,0.1);
+      color: var(--red-light);
+      border-radius: 2px;
+    }
+
+    /* Fraud visual */
+    .fraud-visual {
+      position: relative;
+      height: 340px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.5rem;
+    }
+    .fraud-visual-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .fraud-visual-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .fraud-visual-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+    .visual-bars {
+      position: absolute;
+      bottom: 5.5rem;
+      left: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 180px;
+    }
+    .v-bar {
+      flex: 1;
+      border-radius: 2px 2px 0 0;
+      background: var(--surface);
+      transition: height 1.5s cubic-bezier(0.4,0,0.2,1);
+      position: relative;
+    }
+    .v-bar.fraud { background: var(--red); opacity: 0.9; }
+    .v-bar.legit { background: rgba(39,174,96,0.7); }
+    .v-bar-tooltip {
+      position: absolute;
+      top: -24px;
+      left: 50%; transform: translateX(-50%);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+    .visual-legend {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .legend-dot { width: 8px; height: 8px; border-radius: 1px; }
+
+    /* Objectives section */
+    .obj-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+    .obj-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition);
+    }
+    .obj-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--red);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform var(--transition-slow);
+    }
+    .obj-card:hover { border-color: var(--border-hover); transform: translateY(-3px); }
+    .obj-card:hover::after { transform: scaleX(1); }
+    .obj-num {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--red);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .obj-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
+    .obj-desc {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="nav-brand" aria-label="Home">
+      <div class="logo-box">FD</div>
+      <span>FraudDetect</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Overview</a></li>
+      <li><a href="methodology.html">Methodology</a></li>
+      <li><a href="results.html">Results</a></li>
+      <li><a href="console.html" style="color:var(--gold-light)">Sentinel Console ↗</a></li>
+    </ul>
+    <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener" class="nav-github" aria-label="View GitHub repository">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub Repo
+    </a>
+  </nav>
+
+  <main class="page-wrap">
+
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <canvas id="particle-canvas" class="hero-canvas"></canvas>
+      <div class="hero-grid"></div>
+
+      <div class="hero-content">
+        <div class="terminal-tag">
+          <span class="dot"></span>
+          <span>ML Project &mdash; Classification</span>
+        </div>
+
+        <h1 class="hero-title">
+          Credit Card<br>
+          <span class="line-accent">Fraud</span>
+          <span class="line-stroke"> Detection</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          A reproducible fraud-classification project that compares Logistic Regression and Random Forest
+          on an imbalanced synthetic transaction dataset.
+        </p>
+
+        <div class="hero-meta">
+          <span class="meta-chip"><span class="chip-icon">🧠</span> Logistic Regression</span>
+          <span class="meta-chip"><span class="chip-icon">🌲</span> Random Forest</span>
+          <span class="meta-chip"><span class="chip-icon">🐍</span> Python / scikit-learn</span>
+          <span class="meta-chip"><span class="chip-icon">📊</span> Synthetic Dataset</span>
+        </div>
+
+        <div class="hero-cta">
+          <a href="console.html" class="btn-primary" style="background:#1E3A5F;border-color:#2a4d7d">
+            <span>Launch Sentinel Console</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="methodology.html" class="btn-outline">
+            <span>Explore Methodology</span>
+          </a>
+          <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener" class="btn-outline">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- Side stats -->
+      <div class="hero-number-strip">
+        <div class="hn">
+          <div class="hn-val"><span data-count="99.98" data-decimals="2" data-suffix="%">0%</span></div>
+          <div class="hn-label">RF Test Accuracy</div>
+        </div>
+        <div class="hn">
+          <div class="hn-val"><span data-count="100000" data-suffix="">0</span></div>
+          <div class="hn-label">Transactions</div>
+        </div>
+        <div class="hn">
+          <div class="hn-val"><span data-count="172" data-suffix="">0</span></div>
+          <div class="hn-label">Fraudulent</div>
+        </div>
+      </div>
+
+      <div class="scroll-indicator" aria-hidden="true">
+        <div class="scroll-mouse"></div>
+        <span class="scroll-label">Scroll</span>
+      </div>
+    </section>
+
+    <!-- TICKER -->
+    <div class="ticker-wrap" aria-hidden="true">
+      <div class="ticker-inner">
+        <span class="ticker-item"><span class="sep">▶</span> LOGISTIC REGRESSION</span>
+        <span class="ticker-item"><span class="sep">▶</span> RANDOM FOREST</span>
+        <span class="ticker-item"><span class="sep">▶</span> PRECISION: 94.2%</span>
+        <span class="ticker-item"><span class="sep">▶</span> RECALL: 91.8%</span>
+        <span class="ticker-item"><span class="sep">▶</span> F1 SCORE: 93.0%</span>
+        <span class="ticker-item"><span class="sep">▶</span> AUC-ROC: 0.978</span>
+        <span class="ticker-item"><span class="sep">▶</span> 284,807 TRANSACTIONS</span>
+        <span class="ticker-item"><span class="sep">▶</span> SMOTE RESAMPLING</span>
+        <span class="ticker-item"><span class="sep">▶</span> PCA FEATURES (V1–V28)</span>
+        <span class="ticker-item"><span class="sep">▶</span> CLASS IMBALANCE: 0.17%</span>
+      </div>
+    </div>
+
+    <!-- STATS SECTION -->
+    <section id="stats">
+      <div class="container">
+        <div class="stats-grid reveal">
+          <div class="stat-card card-3d">
+            <div class="stat-num"><span data-count="100000" data-suffix="">0</span></div>
+            <div class="stat-label">Total Transactions</div>
+          </div>
+          <div class="stat-card card-3d">
+            <div class="stat-num"><span data-count="172" data-suffix="">0</span></div>
+            <div class="stat-label">Fraudulent Cases</div>
+          </div>
+          <div class="stat-card card-3d">
+            <div class="stat-num"><span data-count="0.17" data-decimals="2" data-suffix="%">0%</span></div>
+            <div class="stat-label">Fraud Rate (Imbalanced)</div>
+          </div>
+          <div class="stat-card card-3d">
+            <div class="stat-num"><span data-count="28" data-suffix="">0</span></div>
+            <div class="stat-label">PCA Feature Variables</div>
+          </div>
+          <div class="stat-card card-3d">
+            <div class="stat-num"><span data-count="99.98" data-decimals="2" data-suffix="%">0</span></div>
+            <div class="stat-label">Random Forest Test Accuracy</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- LIVE INTERACTIVE FRAUD DETECTOR LAB -->
+    <section id="live-detector" class="detector-section">
+      <div class="container">
+        <div style="text-align: center; max-width: 700px; margin: 0 auto 2rem;">
+          <p class="section-label" style="display:inline-block; margin-bottom: 0.5rem;">Interactive Machine Learning Engine</p>
+          <h2 class="section-title reveal" style="font-size: clamp(2rem, 3.5vw, 2.8rem);">Live Fraud Detection Lab</h2>
+          <p class="section-desc reveal" style="margin: 0 auto;">
+            Run sample or custom transactions through the trained Python models. The detector requires the local API; it does not substitute simulated scores when the API is offline.
+          </p>
+        </div>
+
+        <!-- PRESET BUTTONS -->
+        <div class="preset-pills reveal" style="justify-content: center;">
+          <button type="button" class="preset-btn" data-sample-id="legit_1" onclick="loadSamplePreset('legit_1')" disabled>
+            Genuine sample 1
+          </button>
+          <button type="button" class="preset-btn" data-sample-id="legit_2" onclick="loadSamplePreset('legit_2')" disabled>
+            Genuine sample 2
+          </button>
+          <button type="button" class="preset-btn" data-sample-id="fraud_1" onclick="loadSamplePreset('fraud_1')" disabled>
+            Fraud sample 1
+          </button>
+          <button type="button" class="preset-btn" data-sample-id="fraud_2" onclick="loadSamplePreset('fraud_2')" disabled>
+            Fraud sample 2
+          </button>
+        </div>
+
+        <div class="detector-grid reveal">
+          <!-- INPUT CONTROLS -->
+          <div class="detector-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+              <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">Transaction Parameters</h3>
+              <span id="api-status-badge" style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-secondary); background: var(--surface); padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">MODEL API: CHECKING</span>
+            </div>
+
+            <div class="input-row">
+              <div class="input-group">
+                <label class="input-label" for="inp-amount">AMOUNT (USD): <span id="val-amount">$3.03</span></label>
+                <input type="number" id="inp-amount" class="detector-input" value="3.03" step="0.01" min="0" oninput="updateInputDisplay()">
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="inp-time">TIME ELAPSED (SEC): <span id="val-time">34,860s</span></label>
+                <input type="number" id="inp-time" class="detector-input" value="34860" step="100" min="0" max="172800" oninput="updateInputDisplay()">
+              </div>
+            </div>
+
+            <div style="margin: 1.5rem 0 1rem;">
+              <span style="font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase;">
+                Top Predictive PCA Indicators (V14, V4, V12, V10)
+              </span>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 1rem;">
+              <label class="input-label" for="inp-v14">V14 DEFLECTION (PRIMARY FRAUD DRIVER): <span id="val-v14">0.12</span></label>
+              <input type="range" id="inp-v14" class="detector-slider" min="-12" max="6" step="0.1" value="0.1" oninput="updateInputDisplay()">
+            </div>
+
+            <div class="input-group" style="margin-bottom: 1rem;">
+              <label class="input-label" for="inp-v4">V4 MAGNITUDE (CORRELATED RISK): <span id="val-v4">-1.52</span></label>
+              <input type="range" id="inp-v4" class="detector-slider" min="-5" max="10" step="0.1" value="-1.5" oninput="updateInputDisplay()">
+            </div>
+
+            <div class="input-row" style="margin-bottom: 1rem;">
+              <div class="input-group">
+                <label class="input-label" for="inp-v12">V12 SHIFT: <span id="val-v12">1.08</span></label>
+                <input type="range" id="inp-v12" class="detector-slider" min="-10" max="5" step="0.1" value="1.1" oninput="updateInputDisplay()">
+              </div>
+              <div class="input-group">
+                <label class="input-label" for="inp-v10">V10 SHIFT: <span id="val-v10">-0.24</span></label>
+                <input type="range" id="inp-v10" class="detector-slider" min="-10" max="5" step="0.1" value="-0.2" oninput="updateInputDisplay()">
+              </div>
+            </div>
+
+            <button type="button" id="btn-run-scan" class="scan-action-btn" onclick="executeFraudScan()" disabled>
+              Run model prediction
+            </button>
+            <p id="detector-message" class="detector-message" role="status" aria-live="polite">
+              Checking for the local model API…
+            </p>
+          </div>
+
+          <!-- RESULTS SCREEN -->
+          <div class="result-box">
+            <div>
+              <div id="result-badge" class="result-status-badge badge-legit">
+                No prediction yet
+              </div>
+
+              <div class="meter-wrapper">
+                <div class="meter-header">
+                  <span class="meter-title">Predicted Fraud Risk</span>
+                  <span id="meter-score-text" class="meter-score">—</span>
+                </div>
+                <div class="meter-bar-track">
+                  <div id="meter-bar-fill" class="meter-bar-fill" style="width: 0; background-color: var(--red);"></div>
+                </div>
+              </div>
+
+              <div class="metrics-comparison-grid">
+                <div class="mini-metric-card">
+                  <div class="mini-metric-label">Random Forest Probability</div>
+                  <div id="res-rf-prob" class="mini-metric-value" style="color: var(--text-secondary);">—</div>
+                </div>
+                <div class="mini-metric-card">
+                  <div class="mini-metric-label">Logistic Regression Prob</div>
+                  <div id="res-lr-prob" class="mini-metric-value" style="color: var(--text-secondary);">—</div>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 0.6rem; font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase;">
+                Feature Divergence Telemetry:
+              </div>
+              <div id="anomaly-container" class="anomaly-list">
+                <div class="anomaly-item">Run a scan to see model output.</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.8rem; font-family: var(--font-mono); color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;">
+              <span>Model output: <strong id="action-recommendation" style="color: var(--text-secondary);">Waiting for API</strong></span>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Educational demo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ABOUT SECTION -->
+    <section id="about">
+      <div class="container">
+        <div class="about-grid">
+          <div>
+            <p class="section-label">About The Project</p>
+            <h2 class="section-title reveal">Catching Fraud Before<br>It Catches You</h2>
+            <p class="section-desc reveal">
+              This project builds a binary classification system that distinguishes legitimate credit card
+              transactions from fraudulent ones — addressing one of the most challenging problems in
+              financial security: extreme class imbalance.
+            </p>
+
+            <div class="alert-strip reveal">
+              <span class="alert-icon">⚡</span>
+              <span>The dataset contains transactions made by European cardholders in September 2013.
+              Only <strong style="color:var(--red-light)">0.172%</strong> of all transactions are fraud,
+              making this a severely imbalanced classification problem.</span>
+            </div>
+
+            <div class="tech-stack reveal">
+              <div class="tech-item">
+                <div class="tech-icon">🐍</div>
+                <div class="tech-info">
+                  <div class="tech-name">Python 3.x</div>
+                  <div class="tech-sub">Core programming language</div>
+                </div>
+                <span class="tech-badge">v3.10+</span>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">🤖</div>
+                <div class="tech-info">
+                  <div class="tech-name">scikit-learn</div>
+                  <div class="tech-sub">ML models & evaluation metrics</div>
+                </div>
+                <span class="tech-badge">v1.3</span>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">📦</div>
+                <div class="tech-info">
+                  <div class="tech-name">imbalanced-learn</div>
+                  <div class="tech-sub">SMOTE oversampling</div>
+                </div>
+                <span class="tech-badge">v0.11</span>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">📊</div>
+                <div class="tech-info">
+                  <div class="tech-name">Pandas / NumPy</div>
+                  <div class="tech-sub">Data wrangling &amp; analysis</div>
+                </div>
+                <span class="tech-badge">latest</span>
+              </div>
+              <div class="tech-item">
+                <div class="tech-icon">📈</div>
+                <div class="tech-info">
+                  <div class="tech-name">Matplotlib / Seaborn</div>
+                  <div class="tech-sub">Visualization &amp; EDA</div>
+                </div>
+                <span class="tech-badge">latest</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fraud Visual -->
+          <div class="reveal-right">
+            <div class="fraud-visual card-3d">
+              <div class="fraud-visual-label">Training data</div>
+              <div class="fraud-visual-title">Synthetic transaction sample</div>
+              <div class="imbalance-summary">
+                <div><strong>99,828</strong><span>legitimate</span></div>
+                <div><strong>172</strong><span>fraud cases</span></div>
+              </div>
+              <div class="fraud-visual-sub">100,000 generated rows · 0.172% fraud</div>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="profile-card reveal" style="margin-top:1.5rem">
+              <div class="profile-top"></div>
+              <div class="profile-body">
+                <div class="profile-avatar">👤</div>
+                <div class="profile-name">Jabulani Mayenda</div>
+                <div class="profile-role">$ machine-learning-student</div>
+                <div class="profile-field">
+                  <span class="pf-key">Project</span>
+                  <span class="pf-val">Credit Card Fraud Detection</span>
+                </div>
+                <div class="profile-field">
+                  <span class="pf-key">Models</span>
+                  <span class="pf-val">LR + Random Forest</span>
+                </div>
+                <div class="profile-field">
+                  <span class="pf-key">Dataset</span>
+                  <span class="pf-val">Generated synthetic sample</span>
+                </div>
+                <div class="profile-field">
+                  <span class="pf-key">GitHub</span>
+                  <span class="pf-val">
+                    <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener" style="color:var(--red-light)">fruad-detection</a>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- OBJECTIVES -->
+    <section id="objectives">
+      <div class="container">
+        <p class="section-label reveal">Objectives</p>
+        <h2 class="section-title reveal">What This Project Aims To Do</h2>
+        <p class="section-desc reveal">Four core goals drive every decision in this project — from data preprocessing to model selection.</p>
+
+        <div class="obj-grid">
+          <div class="obj-card reveal reveal-delay-1 card-3d">
+            <div class="obj-num">01 / Detect</div>
+            <div class="obj-title">Identify Fraudulent Transactions</div>
+            <div class="obj-desc">Build a robust binary classifier capable of accurately detecting fraud while minimising false negatives — the most costly type of error.</div>
+          </div>
+          <div class="obj-card reveal reveal-delay-2 card-3d">
+            <div class="obj-num">02 / Balance</div>
+            <div class="obj-title">Handle Class Imbalance</div>
+            <div class="obj-desc">Apply SMOTE and class weighting techniques to prevent the model from being biased toward the majority class of legitimate transactions.</div>
+          </div>
+          <div class="obj-card reveal reveal-delay-3 card-3d">
+            <div class="obj-num">03 / Compare</div>
+            <div class="obj-title">Benchmark Two Algorithms</div>
+            <div class="obj-desc">Evaluate Logistic Regression against Random Forest to determine which delivers better precision, recall, F1, and AUC-ROC on this dataset.</div>
+          </div>
+          <div class="obj-card reveal reveal-delay-4 card-3d">
+            <div class="obj-num">04 / Interpret</div>
+            <div class="obj-title">Produce Actionable Insights</div>
+            <div class="obj-desc">Generate confusion matrices, ROC curves, and feature importance plots to deliver transparent, interpretable model explanations.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- FEATURES -->
+    <section id="features">
+      <div class="container">
+        <p class="section-label reveal">Key Features</p>
+        <h2 class="section-title reveal">What's Inside The Repo</h2>
+
+        <div class="features-grid reveal">
+          <div class="feat-card">
+            <span class="feat-icon">📂</span>
+            <div class="feat-title">Source Code</div>
+            <div class="feat-desc">Full Jupyter notebooks with step-by-step EDA, preprocessing, model training, and evaluation — all documented inline.</div>
+          </div>
+          <div class="feat-card">
+            <span class="feat-icon">📊</span>
+            <div class="feat-title">Dataset &amp; EDA</div>
+            <div class="feat-desc">A reproducible synthetic transaction dataset for demonstrating imbalanced classification. It is not the Kaggle production dataset.</div>
+          </div>
+          <div class="feat-card">
+            <span class="feat-icon">🤖</span>
+            <div class="feat-title">Two ML Models</div>
+            <div class="feat-desc">Compare Logistic Regression and Random Forest using a stratified holdout split and SMOTE applied to training data.</div>
+          </div>
+          <div class="feat-card">
+            <span class="feat-icon">📈</span>
+            <div class="feat-title">Evaluation Metrics</div>
+            <div class="feat-desc">Confusion matrix, precision, recall, F1, and AUC-ROC curves — the right metrics for imbalanced classification tasks.</div>
+          </div>
+          <div class="feat-card">
+            <span class="feat-icon">⚖️</span>
+            <div class="feat-title">SMOTE Resampling</div>
+            <div class="feat-desc">Synthetic Minority Over-sampling Technique to address extreme class imbalance and produce more generalisable models.</div>
+          </div>
+          <div class="feat-card">
+            <span class="feat-icon">📝</span>
+            <div class="feat-title">Documentation</div>
+            <div class="feat-desc">Detailed README, methodology notes, and inline comments explaining every algorithmic decision made throughout the project.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <p>// fraud-detection-portfolio &mdash; 2024</p>
+      <div class="footer-links">
+        <a href="index.html">Overview</a>
+        <a href="methodology.html">Methodology</a>
+        <a href="results.html">Results</a>
+        <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </footer>
+
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    // ── Build visual bars ──
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('vis-bars');
+      if (!container) return;
+      const data = [
+        { h: 14, fraud: false, label: 'Mon' },
+        { h: 70, fraud: false, label: 'Tue' },
+        { h: 55, fraud: false, label: 'Wed' },
+        { h: 90, fraud: false, label: 'Thu' },
+        { h: 40, fraud: false, label: 'Fri' },
+        { h: 3,  fraud: true,  label: '⚠' },
+        { h: 80, fraud: false, label: 'Sat' },
+        { h: 65, fraud: false, label: 'Sun' },
+        { h: 2,  fraud: true,  label: '⚠' },
+        { h: 88, fraud: false, label: '' },
+        { h: 45, fraud: false, label: '' },
+        { h: 1,  fraud: true,  label: '⚠' },
+        { h: 72, fraud: false, label: '' },
+        { h: 60, fraud: false, label: '' },
+      ];
+      data.forEach(d => {
+        const bar = document.createElement('div');
+        bar.className = `v-bar ${d.fraud ? 'fraud' : 'legit'}`;
+        bar.style.height = '4px';
+        if (d.label) {
+          const tip = document.createElement('div');
+          tip.className = 'v-bar-tooltip';
+          tip.textContent = d.label;
+          bar.appendChild(tip);
+        }
+        container.appendChild(bar);
+      });
+      // animate in
+      setTimeout(() => {
+        container.querySelectorAll('.v-bar').forEach((bar, i) => {
+          const target = data[i].h;
+          setTimeout(() => { bar.style.height = target + '%'; }, i * 50);
+        });
+      }, 600);
+    });
+  </script>
+</body>
+</html>

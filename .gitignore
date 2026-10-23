@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Large dataset (optional to track or git-lfs)
+# creditcard.csv
+
+# OS
+.DS_Store
+Thumbs.db

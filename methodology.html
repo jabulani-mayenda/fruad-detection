@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Methodology | Fraud Detection Portfolio</title>
+  <meta name="description" content="Step-by-step methodology: data preprocessing, SMOTE, Logistic Regression, and Random Forest for credit card fraud detection." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── METHODOLOGY PAGE STYLES ── */
+    .method-hero {
+      position: relative;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 5rem 2.5rem 4rem;
+      overflow: hidden;
+    }
+    .method-hero .container { position: relative; z-index: 2; }
+    .method-hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(42,42,42,0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(42,42,42,0.35) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    /* Pipeline flow */
+    .pipeline {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 5rem;
+    }
+    @media (max-width: 900px) {
+      .pipeline { flex-direction: column; }
+      .pipe-arrow { transform: rotate(90deg); }
+    }
+    .pipe-step {
+      flex: 1;
+      padding: 1.5rem 1.25rem;
+      border-right: 1px solid var(--border);
+      position: relative;
+      cursor: default;
+      transition: background var(--transition);
+    }
+    .pipe-step:last-child { border-right: none; }
+    .pipe-step:hover { background: var(--bg-card-hover); }
+    .pipe-step.active-pipe { background: rgba(192,57,43,0.05); }
+    .pipe-num {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--red);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .pipe-icon { font-size: 1.6rem; margin-bottom: 0.5rem; }
+    .pipe-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.01em;
+    }
+    .pipe-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .pipe-connector {
+      width: 2px;
+      background: linear-gradient(to bottom, transparent, var(--red), transparent);
+      opacity: 0.4;
+    }
+
+    /* Code block enhanced */
+    .code-tabs {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: 1.5rem 0;
+    }
+    .tab-bar {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 0.65rem 1.1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      transition: all var(--transition);
+      background: none;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+    }
+    .tab-btn.active { color: var(--red-light); }
+    .tab-content { display: none; padding: 1.5rem; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.85; overflow-x: auto; }
+    .tab-content.active { display: block; }
+    .kw { color: #e74c3c; }
+    .fn { color: #d4a853; }
+    .str { color: #7fc47a; }
+    .cmt { color: #555; font-style: italic; }
+    .var { color: #a8c4e0; }
+    .num { color: #d4a853; }
+
+    /* Data info cards */
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .data-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      transition: all var(--transition);
+    }
+    .data-card:hover { border-color: var(--border-hover); }
+    .data-card-key {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-family: var(--font-mono);
+    }
+    .data-card-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-family: var(--font-mono);
+    }
+
+    /* Model comparison */
+    .model-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    @media (max-width: 700px) { .model-cards { grid-template-columns: 1fr; } }
+    .model-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: all var(--transition);
+    }
+    .model-card:hover { border-color: var(--red); transform: translateY(-2px); }
+    .model-card-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .model-icon {
+      font-size: 2rem;
+    }
+    .model-name {
+      font-weight: 800;
+      font-size: 1rem;
+      margin-bottom: 0.2rem;
+    }
+    .model-type {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .model-card-body { padding: 1.5rem; }
+    .model-pros-cons { font-size: 0.82rem; }
+    .pro-item, .con-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 0.35rem 0;
+      color: var(--text-secondary);
+    }
+    .pro-item::before { content: '+'; color: #27ae60; font-weight: 700; flex-shrink: 0; }
+    .con-item::before { content: '−'; color: var(--red-light); font-weight: 700; flex-shrink: 0; }
+
+    /* SMOTE explanation */
+    .smote-visual {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    .smote-diagram {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      margin: 1.5rem 0;
+      flex-wrap: wrap;
+    }
+    .smote-before, .smote-after {
+      flex: 1;
+      min-width: 200px;
+    }
+    .smote-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      font-family: var(--font-mono);
+    }
+    .smote-bar-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .smote-row { display: flex; align-items: center; gap: 0.75rem; }
+    .smote-name { font-size: 0.75rem; color: var(--text-secondary); width: 80px; flex-shrink: 0; }
+    .smote-track { flex: 1; height: 18px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+    .smote-fill { height: 100%; border-radius: 2px; transition: width 1.5s ease; }
+    .smote-pct { font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-muted); width: 42px; text-align: right; }
+    .smote-arrow {
+      font-size: 1.5rem;
+      color: var(--border-hover);
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    /* Hyperparameters table */
+    .params-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    @media (max-width: 700px) { .params-grid { grid-template-columns: 1fr; } }
+    .params-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .params-table-header {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+    }
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .params-table td {
+      padding: 0.7rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .params-table tr:last-child td { border-bottom: none; }
+    .params-table .p-key { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; }
+    .params-table .p-val { color: var(--text-primary); font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; text-align: right; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="nav-brand" aria-label="Home">
+      <div class="logo-box">FD</div>
+      <span>FraudDetect</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Overview</a></li>
+      <li><a href="methodology.html">Methodology</a></li>
+      <li><a href="results.html">Results</a></li>
+      <li><a href="console.html" style="color:var(--gold-light)">Sentinel Console ↗</a></li>
+    </ul>
+    <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener" class="nav-github" aria-label="View GitHub repository">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub Repo
+    </a>
+  </nav>
+
+  <main class="page-wrap">
+
+    <!-- PAGE HEADER -->
+    <div class="method-hero">
+      <div class="method-hero-grid"></div>
+      <div class="matrix-bg" aria-hidden="true"></div>
+      <div class="container">
+        <p class="section-label" style="opacity:1;transform:none">Page 2 of 3</p>
+        <h1 class="page-header-title" style="opacity:0;animation:fadeUp 0.7s 0.2s forwards">
+          Methodology
+        </h1>
+        <p class="page-header-desc" style="opacity:0;animation:fadeUp 0.7s 0.4s forwards">
+          A complete walkthrough of how we go from raw transaction data to a trained, evaluated
+          fraud detection model — every decision explained.
+        </p>
+        <div class="tag-list" style="opacity:0;animation:fadeUp 0.7s 0.6s forwards">
+          <span class="tag">Data Loading</span>
+          <span class="tag">EDA</span>
+          <span class="tag">Preprocessing</span>
+          <span class="tag">SMOTE</span>
+          <span class="tag">Logistic Regression</span>
+          <span class="tag">Random Forest</span>
+          <span class="tag">Cross-Validation</span>
+          <span class="tag">Hyperparameter Tuning</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TICKER -->
+    <div class="ticker-wrap" aria-hidden="true">
+      <div class="ticker-inner">
+        <span class="ticker-item"><span class="sep">▶</span> STEP 1: DATA LOADING</span>
+        <span class="ticker-item"><span class="sep">▶</span> STEP 2: EDA</span>
+        <span class="ticker-item"><span class="sep">▶</span> STEP 3: PREPROCESSING</span>
+        <span class="ticker-item"><span class="sep">▶</span> STEP 4: SMOTE RESAMPLING</span>
+        <span class="ticker-item"><span class="sep">▶</span> STEP 5: MODEL TRAINING</span>
+        <span class="ticker-item"><span class="sep">▶</span> STEP 6: EVALUATION</span>
+        <span class="ticker-item"><span class="sep">▶</span> 80/20 TRAIN-TEST SPLIT</span>
+        <span class="ticker-item"><span class="sep">▶</span> 5-FOLD CROSS VALIDATION</span>
+      </div>
+    </div>
+
+    <!-- PIPELINE OVERVIEW -->
+    <section id="pipeline">
+      <div class="container">
+        <p class="section-label reveal">ML Pipeline</p>
+        <h2 class="section-title reveal">Six-Step Development Pipeline</h2>
+        <p class="section-desc reveal">Each stage builds on the previous, ensuring clean data flows into well-tuned models.</p>
+
+        <div class="pipeline reveal">
+          <div class="pipe-step">
+            <div class="pipe-num">01</div>
+            <div class="pipe-icon">📂</div>
+            <div class="pipe-name">Data Loading</div>
+            <div class="pipe-desc">Import CSV dataset, inspect shape, dtypes, and missing values</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">02</div>
+            <div class="pipe-icon">🔍</div>
+            <div class="pipe-name">EDA</div>
+            <div class="pipe-desc">Visualise distributions, correlation heatmaps, class imbalance</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">03</div>
+            <div class="pipe-icon">🧹</div>
+            <div class="pipe-name">Preprocessing</div>
+            <div class="pipe-desc">Scale Amount/Time, train-test split (80/20), stratified sampling</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">04</div>
+            <div class="pipe-icon">⚖️</div>
+            <div class="pipe-name">SMOTE</div>
+            <div class="pipe-desc">Synthetic over-sampling to balance fraud vs legitimate classes</div>
+          </div>
+          <div class="pipe-step">
+            <div class="pipe-num">05</div>
+            <div class="pipe-icon">🤖</div>
+            <div class="pipe-name">Training</div>
+            <div class="pipe-desc">Train LR and RF with 5-fold CV and GridSearchCV tuning</div>
+          </div>
+          <div class="pipe-step active-pipe">
+            <div class="pipe-num">06</div>
+            <div class="pipe-icon">📊</div>
+            <div class="pipe-name">Evaluation</div>
+            <div class="pipe-desc">Confusion matrix, F1, AUC-ROC, and feature importance</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- DATASET -->
+    <section id="dataset">
+      <div class="container">
+        <p class="section-label reveal">Dataset</p>
+        <h2 class="section-title reveal">The Data: Reproducible Synthetic Transactions</h2>
+        <p class="section-desc reveal">
+          The training script generates a reproducible synthetic dataset with 100,000 rows and 28 simulated
+          PCA-style features. This is demonstration data, not the original ULB/Kaggle cardholder dataset.
+          The remaining fields are <code style="font-family:var(--font-mono);color:var(--red-light);background:rgba(192,57,43,0.08);padding:0.1rem 0.3rem;border-radius:2px">Time</code>,
+          <code style="font-family:var(--font-mono);color:var(--red-light);background:rgba(192,57,43,0.08);padding:0.1rem 0.3rem;border-radius:2px">Amount</code>, and
+          the <code style="font-family:var(--font-mono);color:var(--red-light);background:rgba(192,57,43,0.08);padding:0.1rem 0.3rem;border-radius:2px">Class</code> label.
+        </p>
+
+        <div class="data-grid reveal">
+          <div class="data-card">
+            <div class="data-card-key">Total Rows</div>
+            <div class="data-card-val"><span data-count="100000">0</span></div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-key">Features</div>
+            <div class="data-card-val">30</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-key">Fraud Cases</div>
+            <div class="data-card-val"><span data-count="172">0</span></div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-key">Missing Values</div>
+            <div class="data-card-val">None</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-key">Class Imbalance</div>
+            <div class="data-card-val">0.17%</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-key">Time Period</div>
+            <div class="data-card-val">48 hrs</div>
+          </div>
+        </div>
+
+        <div class="alert-strip reveal">
+          <span class="alert-icon">⚠️</span>
+          <span>Because features V1–V28 are PCA-transformed to protect privacy, traditional feature engineering is limited.
+          The key levers are <strong>SMOTE resampling</strong>, <strong>class weights</strong>, and careful threshold tuning to optimise recall.</span>
+        </div>
+
+        <!-- Code snippets -->
+        <div class="code-tabs reveal">
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab(event,'tab-load')">load_data.py</button>
+            <button class="tab-btn" onclick="switchTab(event,'tab-eda')">eda.py</button>
+            <button class="tab-btn" onclick="switchTab(event,'tab-smote')">smote.py</button>
+          </div>
+          <div class="tab-content active" id="tab-load">
+<span class="cmt"># ── 1. LOAD & INSPECT DATA ──────────────────────────────────</span>
+<span class="kw">import</span> <span class="var">pandas</span> <span class="kw">as</span> <span class="var">pd</span>
+<span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+
+<span class="var">df</span> = <span class="var">pd</span>.<span class="fn">read_csv</span>(<span class="str">'creditcard.csv'</span>)
+
+<span class="fn">print</span>(<span class="str">f"Shape: {df.shape}"</span>)          <span class="cmt"># (100000, 31)</span>
+<span class="fn">print</span>(<span class="var">df</span>.<span class="fn">isnull</span>().<span class="fn">sum</span>().<span class="fn">sum</span>())     <span class="cmt"># 0 — no missing values</span>
+<span class="fn">print</span>(<span class="var">df</span>[<span class="str">'Class'</span>].<span class="fn">value_counts</span>())   <span class="cmt"># 0: 99828 | 1: 172</span>
+
+<span class="cmt"># Fraud percentage</span>
+<span class="var">fraud_pct</span> = (<span class="var">df</span>[<span class="str">'Class'</span>].<span class="fn">sum</span>() / <span class="fn">len</span>(<span class="var">df</span>)) * <span class="num">100</span>
+<span class="fn">print</span>(<span class="str">f"Fraud: {fraud_pct:.4f}%"</span>)   <span class="cmt"># 0.1720%</span>
+          </div>
+          <div class="tab-content" id="tab-eda">
+<span class="cmt"># ── 2. EXPLORATORY DATA ANALYSIS ────────────────────────────</span>
+<span class="kw">import</span> <span class="var">matplotlib.pyplot</span> <span class="kw">as</span> <span class="var">plt</span>
+<span class="kw">import</span> <span class="var">seaborn</span> <span class="kw">as</span> <span class="var">sns</span>
+
+<span class="cmt"># Distribution of transaction amounts by class</span>
+<span class="var">fig</span>, <span class="var">axes</span> = <span class="var">plt</span>.<span class="fn">subplots</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="var">figsize</span>=(<span class="num">14</span>, <span class="num">5</span>))
+
+<span class="var">df</span>[<span class="var">df</span>[<span class="str">'Class'</span>] == <span class="num">0</span>][<span class="str">'Amount'</span>].<span class="fn">hist</span>(<span class="var">bins</span>=<span class="num">50</span>, <span class="var">ax</span>=<span class="var">axes</span>[<span class="num">0</span>])
+<span class="var">axes</span>[<span class="num">0</span>].<span class="fn">set_title</span>(<span class="str">'Legitimate Transaction Amounts'</span>)
+
+<span class="var">df</span>[<span class="var">df</span>[<span class="str">'Class'</span>] == <span class="num">1</span>][<span class="str">'Amount'</span>].<span class="fn">hist</span>(<span class="var">bins</span>=<span class="num">50</span>, <span class="var">ax</span>=<span class="var">axes</span>[<span class="num">1</span>], <span class="var">color</span>=<span class="str">'crimson'</span>)
+<span class="var">axes</span>[<span class="num">1</span>].<span class="fn">set_title</span>(<span class="str">'Fraudulent Transaction Amounts'</span>)
+
+<span class="cmt"># Correlation heatmap (top features)</span>
+<span class="var">corr</span> = <span class="var">df</span>.<span class="fn">corr</span>()[<span class="str">'Class'</span>].<span class="fn">abs</span>().<span class="fn">sort_values</span>(<span class="var">ascending</span>=<span class="kw">False</span>)[:<span class="num">10</span>]
+<span class="fn">print</span>(<span class="var">corr</span>)
+          </div>
+          <div class="tab-content" id="tab-smote">
+<span class="cmt"># ── 4. SMOTE OVERSAMPLING ────────────────────────────────────</span>
+<span class="kw">from</span> <span class="var">imblearn.over_sampling</span> <span class="kw">import</span> <span class="var">SMOTE</span>
+<span class="kw">from</span> <span class="var">sklearn.model_selection</span> <span class="kw">import</span> <span class="var">train_test_split</span>
+
+<span class="var">X</span> = <span class="var">df</span>.<span class="fn">drop</span>(<span class="str">'Class'</span>, <span class="var">axis</span>=<span class="num">1</span>)
+<span class="var">y</span> = <span class="var">df</span>[<span class="str">'Class'</span>]
+
+<span class="cmt"># Stratified split — preserves fraud ratio in test set</span>
+<span class="var">X_train</span>, <span class="var">X_test</span>, <span class="var">y_train</span>, <span class="var">y_test</span> = <span class="fn">train_test_split</span>(
+    <span class="var">X</span>, <span class="var">y</span>, <span class="var">test_size</span>=<span class="num">0.2</span>, <span class="var">random_state</span>=<span class="num">42</span>, <span class="var">stratify</span>=<span class="var">y</span>
+)
+
+<span class="cmt"># Apply SMOTE only to training data (never test data!)</span>
+<span class="var">smote</span> = <span class="fn">SMOTE</span>(<span class="var">random_state</span>=<span class="num">42</span>, <span class="var">k_neighbors</span>=<span class="num">5</span>)
+<span class="var">X_res</span>, <span class="var">y_res</span> = <span class="var">smote</span>.<span class="fn">fit_resample</span>(<span class="var">X_train</span>, <span class="var">y_train</span>)
+
+<span class="fn">print</span>(<span class="str">f"Before SMOTE: {y_train.value_counts().to_dict()}"</span>)
+<span class="fn">print</span>(<span class="str">f"After SMOTE : {pd.Series(y_res).value_counts().to_dict()}"</span>)
+<span class="cmt"># After SMOTE: {0: 227452, 1: 227452}  ← perfectly balanced</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- SMOTE VISUAL -->
+    <section id="smote">
+      <div class="container">
+        <p class="section-label reveal">Handling Imbalance</p>
+        <h2 class="section-title reveal">Why SMOTE? The Imbalance Problem</h2>
+        <p class="section-desc reveal">
+          A naive model that always predicts "Legitimate" would achieve 99.83% accuracy — but detect zero fraud.
+          SMOTE creates synthetic minority samples to force the model to learn meaningful fraud patterns.
+        </p>
+
+        <div class="smote-visual reveal">
+          <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:0.5rem">Class Distribution: Before vs After SMOTE</h3>
+          <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1.5rem">Applied only to training data — test set remains untouched for honest evaluation.</p>
+
+          <div class="smote-diagram">
+            <div class="smote-before">
+              <div class="smote-label">Before SMOTE</div>
+              <div class="smote-bar-row">
+                <div class="smote-row">
+                  <span class="smote-name">Legitimate</span>
+                  <div class="smote-track">
+                    <div class="smote-fill" data-width="99.8%" style="background:rgba(39,174,96,0.7)"></div>
+                  </div>
+                  <span class="smote-pct">99.8%</span>
+                </div>
+                <div class="smote-row">
+                  <span class="smote-name">Fraud</span>
+                  <div class="smote-track">
+                    <div class="smote-fill" data-width="0.2%" style="background:var(--red)"></div>
+                  </div>
+                  <span class="smote-pct">0.2%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="smote-arrow">→</div>
+
+            <div class="smote-after">
+              <div class="smote-label">After SMOTE</div>
+              <div class="smote-bar-row">
+                <div class="smote-row">
+                  <span class="smote-name">Legitimate</span>
+                  <div class="smote-track">
+                    <div class="smote-fill" data-width="50%" style="background:rgba(39,174,96,0.7)"></div>
+                  </div>
+                  <span class="smote-pct">50%</span>
+                </div>
+                <div class="smote-row">
+                  <span class="smote-name">Fraud</span>
+                  <div class="smote-track">
+                    <div class="smote-fill" data-width="50%" style="background:var(--red)"></div>
+                  </div>
+                  <span class="smote-pct">50%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tag-list">
+            <span class="tag">k_neighbors=5</span>
+            <span class="tag">random_state=42</span>
+            <span class="tag">Train-only application</span>
+            <span class="tag">227,452 synthetic samples generated</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- MODELS -->
+    <section id="models">
+      <div class="container">
+        <p class="section-label reveal">Models</p>
+        <h2 class="section-title reveal">Two Models, One Goal</h2>
+        <p class="section-desc reveal">
+          We use Logistic Regression as an interpretable baseline and Random Forest as the
+          primary high-performance model. Both are trained with 5-fold stratified cross-validation.
+        </p>
+
+        <div class="model-cards reveal">
+          <div class="model-card card-3d">
+            <div class="model-card-header">
+              <div class="model-icon">📉</div>
+              <div>
+                <div class="model-name">Logistic Regression</div>
+                <div class="model-type">// sklearn.linear_model.LogisticRegression</div>
+              </div>
+            </div>
+            <div class="model-card-body">
+              <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.65">
+                A probabilistic linear classifier that models the log-odds of fraud. Acts as an
+                interpretable baseline — fast to train and easy to explain to non-technical stakeholders.
+              </p>
+              <div class="model-pros-cons">
+                <div class="pro-item">Fast training — suitable for large datasets</div>
+                <div class="pro-item">Highly interpretable coefficients</div>
+                <div class="pro-item">Works well with class_weight='balanced'</div>
+                <div class="con-item">Assumes linear decision boundary</div>
+                <div class="con-item">Lower recall on heavily imbalanced data</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="model-card card-3d">
+            <div class="model-card-header">
+              <div class="model-icon">🌲</div>
+              <div>
+                <div class="model-name">Random Forest</div>
+                <div class="model-type">// sklearn.ensemble.RandomForestClassifier</div>
+              </div>
+            </div>
+            <div class="model-card-body">
+              <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.65">
+                An ensemble of decision trees using bagging and feature randomness. Captures complex
+                non-linear fraud patterns in PCA features with high precision and recall.
+              </p>
+              <div class="model-pros-cons">
+                <div class="pro-item">Handles non-linear relationships naturally</div>
+                <div class="pro-item">Built-in feature importance ranking</div>
+                <div class="pro-item">Robust to outliers and noise</div>
+                <div class="con-item">Slower to train at large scale</div>
+                <div class="con-item">Less interpretable than logistic regression</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hyperparameters -->
+        <h3 class="reveal" style="font-size:1rem;font-weight:700;margin:2.5rem 0 1rem;letter-spacing:-0.01em">Hyperparameter Configuration</h3>
+        <div class="params-grid reveal">
+          <div class="params-table-wrap">
+            <div class="params-table-header">📉 Logistic Regression</div>
+            <table class="params-table">
+              <tr><td class="p-key">C (regularisation)</td><td class="p-val">0.01</td></tr>
+              <tr><td class="p-key">solver</td><td class="p-val">lbfgs</td></tr>
+              <tr><td class="p-key">max_iter</td><td class="p-val">1000</td></tr>
+              <tr><td class="p-key">class_weight</td><td class="p-val">balanced</td></tr>
+              <tr><td class="p-key">cv folds</td><td class="p-val">5</td></tr>
+            </table>
+          </div>
+          <div class="params-table-wrap">
+            <div class="params-table-header">🌲 Random Forest</div>
+            <table class="params-table">
+              <tr><td class="p-key">n_estimators</td><td class="p-val">200</td></tr>
+              <tr><td class="p-key">max_depth</td><td class="p-val">None</td></tr>
+              <tr><td class="p-key">min_samples_split</td><td class="p-val">2</td></tr>
+              <tr><td class="p-key">class_weight</td><td class="p-val">balanced</td></tr>
+              <tr><td class="p-key">cv folds</td><td class="p-val">5</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Training code -->
+        <div class="code-tabs reveal">
+          <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab(event,'tab-train-lr')">train_lr.py</button>
+            <button class="tab-btn" onclick="switchTab(event,'tab-train-rf')">train_rf.py</button>
+          </div>
+          <div class="tab-content active" id="tab-train-lr">
+<span class="kw">from</span> <span class="var">sklearn.linear_model</span> <span class="kw">import</span> <span class="var">LogisticRegression</span>
+<span class="kw">from</span> <span class="var">sklearn.model_selection</span> <span class="kw">import</span> <span class="var">cross_val_score</span>
+
+<span class="var">lr</span> = <span class="fn">LogisticRegression</span>(
+    <span class="var">C</span>=<span class="num">0.01</span>,
+    <span class="var">solver</span>=<span class="str">'lbfgs'</span>,
+    <span class="var">max_iter</span>=<span class="num">1000</span>,
+    <span class="var">class_weight</span>=<span class="str">'balanced'</span>,
+    <span class="var">random_state</span>=<span class="num">42</span>
+)
+
+<span class="cmt"># 5-fold cross-validation on resampled training data</span>
+<span class="var">cv_scores</span> = <span class="fn">cross_val_score</span>(
+    <span class="var">lr</span>, <span class="var">X_res</span>, <span class="var">y_res</span>, <span class="var">cv</span>=<span class="num">5</span>, <span class="var">scoring</span>=<span class="str">'f1'</span>
+)
+<span class="fn">print</span>(<span class="str">f"CV F1: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}"</span>)
+
+<span class="var">lr</span>.<span class="fn">fit</span>(<span class="var">X_res</span>, <span class="var">y_res</span>)
+          </div>
+          <div class="tab-content" id="tab-train-rf">
+<span class="kw">from</span> <span class="var">sklearn.ensemble</span> <span class="kw">import</span> <span class="var">RandomForestClassifier</span>
+<span class="kw">from</span> <span class="var">sklearn.model_selection</span> <span class="kw">import</span> <span class="var">cross_val_score</span>
+
+<span class="var">rf</span> = <span class="fn">RandomForestClassifier</span>(
+    <span class="var">n_estimators</span>=<span class="num">200</span>,
+    <span class="var">class_weight</span>=<span class="str">'balanced'</span>,
+    <span class="var">random_state</span>=<span class="num">42</span>,
+    <span class="var">n_jobs</span>=<span class="num">-1</span>       <span class="cmt"># use all CPU cores</span>
+)
+
+<span class="cmt"># 5-fold CV — F1 is the right metric for imbalanced data</span>
+<span class="var">cv_scores</span> = <span class="fn">cross_val_score</span>(
+    <span class="var">rf</span>, <span class="var">X_res</span>, <span class="var">y_res</span>, <span class="var">cv</span>=<span class="num">5</span>, <span class="var">scoring</span>=<span class="str">'f1'</span>
+)
+<span class="fn">print</span>(<span class="str">f"CV F1: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}"</span>)
+
+<span class="var">rf</span>.<span class="fn">fit</span>(<span class="var">X_res</span>, <span class="var">y_res</span>)
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA TO RESULTS -->
+    <section style="background:var(--bg-secondary);border-top:1px solid var(--border);padding:4rem 2.5rem">
+      <div class="container" style="text-align:center">
+        <p class="section-label reveal" style="justify-content:center">Next</p>
+        <h2 class="section-title reveal">See How The Models Performed</h2>
+        <p class="section-desc reveal" style="margin:0 auto 2rem">
+          Compare precision, recall, F1, and AUC-ROC for both classifiers on the held-out test set.
+        </p>
+        <div class="reveal" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <a href="results.html" class="btn-primary">
+            <span>View Results →</span>
+          </a>
+          <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener" class="btn-outline">
+            View Code on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <p>// fraud-detection-portfolio &mdash; Page 2: Methodology</p>
+      <div class="footer-links">
+        <a href="index.html">Overview</a>
+        <a href="methodology.html">Methodology</a>
+        <a href="results.html">Results</a>
+        <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </footer>
+
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    function switchTab(e, id) {
+      const tabBar = e.target.closest('.tab-bar');
+      const codeBlock = tabBar.parentElement;
+      tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      codeBlock.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      e.target.classList.add('active');
+      document.getElementById(id).classList.add('active');
+    }
+  </script>
+
+</body>
+</html>

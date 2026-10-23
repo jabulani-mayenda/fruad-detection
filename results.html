@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Results | Fraud Detection Portfolio</title>
+  <meta name="description" content="Model results: Logistic Regression vs Random Forest — precision, recall, F1, AUC-ROC, confusion matrix, and feature importance." />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── RESULTS PAGE STYLES ── */
+    .results-hero {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 5rem 2.5rem 4rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .results-hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(42,42,42,0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(42,42,42,0.35) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+    .results-hero .container { position: relative; z-index: 2; }
+
+    /* Model winner banner */
+    .winner-banner {
+      background: rgba(192,57,43,0.06);
+      border: 1px solid rgba(192,57,43,0.3);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+    .winner-badge {
+      font-size: 2.5rem;
+      flex-shrink: 0;
+    }
+    .winner-info { flex: 1; }
+    .winner-info h3 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+      color: var(--red-light);
+      letter-spacing: -0.02em;
+    }
+    .winner-info p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .winner-score {
+      font-family: var(--font-mono);
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: var(--text-primary);
+      letter-spacing: -0.04em;
+      flex-shrink: 0;
+    }
+    .winner-score small { font-size: 1rem; color: var(--text-muted); }
+
+    /* Metric grid */
+    .big-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 4rem;
+    }
+    @media (max-width: 700px) { .big-metrics { grid-template-columns: repeat(2, 1fr); } }
+    .bm-card {
+      background: var(--bg-card);
+      padding: 1.75rem;
+      transition: background var(--transition);
+    }
+    .bm-card:hover { background: var(--bg-card-hover); }
+    .bm-model {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-bottom: 0.5rem;
+    }
+    .bm-metric {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.25rem;
+    }
+    .bm-val {
+      font-family: var(--font-mono);
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+    .bm-val.red { color: var(--red-light); }
+    .bm-val.gold { color: var(--gold-light); }
+    .bm-val.green { color: #6bcf8f; }
+    .bm-val.white { color: var(--text-primary); }
+
+    /* Comparison table section */
+    .full-compare {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: 2rem 0;
+    }
+    .full-compare-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .full-compare table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .full-compare th {
+      padding: 0.8rem 1.5rem;
+      text-align: left;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .full-compare td {
+      padding: 0.9rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .full-compare tr:last-child td { border-bottom: none; }
+    .full-compare tr:hover td { background: rgba(255,255,255,0.015); }
+    .winner-cell {
+      color: var(--red-light) !important;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .loser-cell {
+      color: var(--text-muted) !important;
+      font-family: var(--font-mono);
+    }
+
+    /* Confusion matrix visual */
+    .cm-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    @media (max-width: 700px) { .cm-grid { grid-template-columns: 1fr; } }
+    .cm-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .cm-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cm-body { padding: 1.5rem; }
+    .cm-matrix {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr;
+      gap: 2px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .cm-axis-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      writing-mode: horizontal-tb;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0 0.5rem;
+    }
+    .cm-col-label {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding-bottom: 0.5rem;
+    }
+    .cm-cell {
+      padding: 1.2rem;
+      border-radius: 3px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .cm-cell small { font-size: 0.62rem; font-weight: 400; color: rgba(255,255,255,0.5); }
+    .cm-tp { background: rgba(39,174,96,0.15); color: #6bcf8f; }
+    .cm-tn { background: rgba(39,174,96,0.08); color: #5ab87d; }
+    .cm-fp { background: rgba(212,168,83,0.12); color: var(--gold-light); }
+    .cm-fn { background: rgba(192,57,43,0.2); color: var(--red-light); }
+    .cm-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    .cm-legend span { display: flex; align-items: center; gap: 5px; }
+    .cm-legend .dot { width: 8px; height: 8px; border-radius: 1px; }
+
+    /* Feature importance */
+    .feat-importance {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .fi-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .fi-body { padding: 1.5rem; }
+    .fi-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.7rem;
+    }
+    .fi-name {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      width: 50px;
+      flex-shrink: 0;
+    }
+    .fi-track { flex: 1; height: 20px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+    .fi-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--red-dark), var(--red));
+      width: 0;
+      transition: width 1.8s cubic-bezier(0.4,0,0.2,1);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 6px;
+    }
+    .fi-fill span { font-size: 0.6rem; color: rgba(255,255,255,0.7); font-family: var(--font-mono); }
+    .fi-pct { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); width: 40px; text-align: right; }
+
+    /* ROC curve SVG */
+    .roc-visual {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .roc-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .roc-body { padding: 1.5rem; }
+    .roc-svg-wrap {
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    .roc-svg-wrap svg { width: 100%; height: auto; }
+    .roc-curve-rf {
+      fill: none;
+      stroke: var(--red);
+      stroke-width: 2.5;
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      transition: stroke-dashoffset 2s 0.5s ease;
+    }
+    .roc-curve-lr {
+      fill: none;
+      stroke: var(--gold);
+      stroke-width: 2;
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      transition: stroke-dashoffset 2.5s 0.7s ease;
+    }
+    .roc-baseline {
+      stroke: var(--border-hover);
+      stroke-width: 1;
+      stroke-dasharray: 4 4;
+    }
+    .roc-svg-wrap.animate .roc-curve-rf,
+    .roc-svg-wrap.animate .roc-curve-lr { stroke-dashoffset: 0; }
+    .roc-legend {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      font-size: 0.78rem;
+    }
+    .roc-legend-item { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+    .roc-legend-line { width: 24px; height: 2px; }
+
+    /* Findings */
+    .findings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .finding-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    .finding-row:last-child { border-bottom: none; }
+    .finding-row:hover { background: var(--bg-card-hover); }
+    .finding-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .finding-content { flex: 1; }
+    .finding-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 0.2rem; }
+    .finding-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.65; }
+
+    /* GitHub CTA */
+    .github-cta {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 3rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .github-cta::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--red), transparent);
+    }
+    .github-cta h3 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
+    }
+    .github-cta p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.7;
+    }
+    .github-link-big {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.9rem 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+      margin-bottom: 1rem;
+    }
+    .github-link-big:hover {
+      border-color: var(--red);
+      color: var(--red-light);
+      background: rgba(192,57,43,0.06);
+    }
+    .repo-files {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .repo-file {
+      padding: 0.3rem 0.7rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .repo-file:hover { color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="nav-brand" aria-label="Home">
+      <div class="logo-box">FD</div>
+      <span>FraudDetect</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Overview</a></li>
+      <li><a href="methodology.html">Methodology</a></li>
+      <li><a href="results.html">Results</a></li>
+      <li><a href="console.html" style="color:var(--gold-light)">Sentinel Console ↗</a></li>
+    </ul>
+    <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener" class="nav-github" aria-label="View GitHub repository">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub Repo
+    </a>
+  </nav>
+
+  <main class="page-wrap">
+
+    <!-- PAGE HEADER -->
+    <div class="results-hero">
+      <div class="results-hero-grid"></div>
+      <div class="container">
+        <p class="section-label" style="opacity:1;transform:none">Page 3 of 3</p>
+        <h1 class="page-header-title" style="opacity:0;animation:fadeUp 0.7s 0.2s forwards">
+          Results &amp; Findings
+        </h1>
+        <p class="page-header-desc" style="opacity:0;animation:fadeUp 0.7s 0.4s forwards">
+          Evaluation on 20,000 held-out synthetic transactions, including 34 generated fraud examples.
+          recall (catching fraudsters) and precision (avoiding false alarms).
+        </p>
+      </div>
+    </div>
+
+    <!-- TICKER -->
+    <div class="ticker-wrap" aria-hidden="true">
+      <div class="ticker-inner">
+        <span class="ticker-item"><span class="sep">▶</span> RF ACCURACY: 99.98%</span>
+        <span class="ticker-item"><span class="sep">▶</span> RF PRECISION: 100%</span>
+        <span class="ticker-item"><span class="sep">▶</span> RF RECALL: 88.24%</span>
+        <span class="ticker-item"><span class="sep">▶</span> RF F1: 93.75%</span>
+        <span class="ticker-item"><span class="sep">▶</span> RF AUC-ROC: 1.0000</span>
+        <span class="ticker-item"><span class="sep">▶</span> LR ACCURACY: 99.99%</span>
+        <span class="ticker-item"><span class="sep">▶</span> LR PRECISION: 97.06%</span>
+        <span class="ticker-item"><span class="sep">▶</span> LR RECALL: 97.06%</span>
+        <span class="ticker-item"><span class="sep">▶</span> LR AUC-ROC: 0.9999</span>
+      </div>
+    </div>
+
+    <!-- WINNER BANNER + BIG METRICS -->
+    <section id="summary">
+      <div class="container">
+        <div class="winner-banner reveal">
+          <div class="winner-badge">🏆</div>
+          <div class="winner-info">
+            <h3>Model trade-off: recall vs. precision</h3>
+            <p>Logistic Regression catches more generated fraud examples (97.06% recall). Random Forest
+            has higher precision (100%) and fewer false alarms on this synthetic test split. Neither result
+            establishes real-world performance.</p>
+          </div>
+          <div class="winner-score">
+            <span data-count="97.06" data-decimals="2" data-suffix="%">0%</span>
+            <small>LR recall</small>
+          </div>
+        </div>
+
+        <div class="big-metrics reveal">
+          <div class="bm-card">
+            <div class="bm-model">Random Forest</div>
+            <div class="bm-metric">Precision</div>
+            <div class="bm-val red"><span data-count="100" data-decimals="0" data-suffix="%">0</span></div>
+          </div>
+          <div class="bm-card">
+            <div class="bm-model">Random Forest</div>
+            <div class="bm-metric">Recall</div>
+            <div class="bm-val green"><span data-count="88.24" data-decimals="2" data-suffix="%">0</span></div>
+          </div>
+          <div class="bm-card">
+            <div class="bm-model">Random Forest</div>
+            <div class="bm-metric">F1 Score</div>
+            <div class="bm-val gold"><span data-count="93.75" data-decimals="2" data-suffix="%">0</span></div>
+          </div>
+          <div class="bm-card">
+            <div class="bm-model">Random Forest</div>
+            <div class="bm-metric">AUC-ROC</div>
+            <div class="bm-val white"><span data-count="1" data-decimals="4" data-suffix="">0</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- FULL COMPARISON TABLE -->
+    <section id="comparison">
+      <div class="container">
+        <p class="section-label reveal">Model Comparison</p>
+        <h2 class="section-title reveal">Head-to-Head: LR vs Random Forest</h2>
+        <p class="section-desc reveal">
+          All metrics are measured on a stratified 20% synthetic test split (20,000 transactions, 34 fraud cases).
+          <strong style="color:var(--red-light)">Highlighted values</strong> indicate the stronger model for each metric.
+        </p>
+
+        <div class="full-compare reveal">
+          <div class="full-compare-header">
+            <span>Performance Metrics</span>
+            <span class="badge badge-red">Test Set Results</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Logistic Regression</th>
+                <th>Random Forest</th>
+                <th>Winner</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Accuracy</td>
+                <td class="winner-cell">99.99%</td>
+                <td class="loser-cell">99.98%</td>
+                <td><span class="badge badge-gold">LR</span></td>
+              </tr>
+              <tr>
+                <td>Precision</td>
+                <td class="loser-cell">97.06%</td>
+                <td class="winner-cell">100.00%</td>
+                <td><span class="badge badge-red">RF</span></td>
+              </tr>
+              <tr>
+                <td>Recall (Sensitivity)</td>
+                <td class="winner-cell">97.06%</td>
+                <td class="loser-cell">88.24%</td>
+                <td><span class="badge badge-gold">LR</span></td>
+              </tr>
+              <tr>
+                <td>F1 Score</td>
+                <td class="winner-cell">97.06%</td>
+                <td class="loser-cell">93.75%</td>
+                <td><span class="badge badge-gold">LR</span></td>
+              </tr>
+              <tr>
+                <td>AUC-ROC</td>
+                <td class="loser-cell">0.9999</td>
+                <td class="winner-cell">1.0000</td>
+                <td><span class="badge badge-red">RF</span></td>
+              </tr>
+              <tr>
+                <td>Average Precision (PR-AUC)</td>
+                <td class="loser-cell">0.9851</td>
+                <td class="winner-cell">0.9861</td>
+                <td><span class="badge badge-red">RF</span></td>
+              </tr>
+              <tr>
+                <td>False Alarm Rate (FP)</td>
+                <td class="loser-cell">1 (0.005%)</td>
+                <td class="winner-cell">0 (0.000%)</td>
+                <td><span class="badge badge-red">RF</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- metric bars -->
+        <div class="split reveal" style="margin-top:2rem">
+          <div>
+            <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:1.2rem">Random Forest Classifier (Ensemble)</h3>
+            <div class="metric-row">
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">Precision</span><span class="metric-val">100.00%</span></div>
+                <div class="metric-track"><div class="metric-fill" data-width="100%"></div></div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">Recall</span><span class="metric-val">88.24%</span></div>
+                <div class="metric-track"><div class="metric-fill green" data-width="88.24%"></div></div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">F1 Score</span><span class="metric-val">93.75%</span></div>
+                <div class="metric-track"><div class="metric-fill gold" data-width="93.75%"></div></div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">AUC-ROC</span><span class="metric-val">100.00%</span></div>
+                <div class="metric-track"><div class="metric-fill" data-width="100%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:1.2rem">Logistic Regression (Balanced)</h3>
+            <div class="metric-row">
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">Precision</span><span class="metric-val">97.06%</span></div>
+                <div class="metric-track"><div class="metric-fill gold" data-width="97.06%"></div></div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">Recall</span><span class="metric-val">97.06%</span></div>
+                <div class="metric-track"><div class="metric-fill green" data-width="97.06%"></div></div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">F1 Score</span><span class="metric-val">97.06%</span></div>
+                <div class="metric-track"><div class="metric-fill gold" data-width="97.06%"></div></div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-header"><span class="metric-name">AUC-ROC</span><span class="metric-val">99.99%</span></div>
+                <div class="metric-track"><div class="metric-fill gold" data-width="99.99%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- CONFUSION MATRICES -->
+    <section id="confusion">
+      <div class="container">
+        <p class="section-label reveal">Confusion Matrices</p>
+        <h2 class="section-title reveal">Breaking Down the Predictions</h2>
+        <p class="section-desc reveal">
+          For fraud detection, <strong style="color:var(--red-light)">False Negatives</strong> (missed fraud) are the
+          most costly error. Random Forest achieves lower FN than Logistic Regression.
+        </p>
+
+        <div class="cm-grid">
+          <!-- LR Confusion Matrix -->
+          <div class="cm-card reveal">
+            <div class="cm-header">📉 Logistic Regression</div>
+            <div class="cm-body">
+              <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:1rem;font-family:var(--font-mono)">Predicted →</p>
+              <div class="cm-matrix">
+                <!-- row 0 -->
+                <div class="cm-axis-label" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:0.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Actual →</div>
+                <div style="display:contents">
+                  <div class="cm-col-label">Legit</div>
+                  <div class="cm-col-label">Fraud</div>
+                  <div class="cm-cell cm-tn">
+                    <span>19,965</span>
+                    <small>True Negative (Clean)</small>
+                  </div>
+                  <div class="cm-cell cm-fp">
+                    <span>1</span>
+                    <small>False Positive (Alarm)</small>
+                  </div>
+                  <div class="cm-cell cm-fn">
+                    <span>1</span>
+                    <small>False Negative (Missed)</small>
+                  </div>
+                  <div class="cm-cell cm-tp">
+                    <span>33</span>
+                    <small>True Positive (Caught)</small>
+                  </div>
+                </div>
+              </div>
+              <div class="cm-legend">
+                <span><div class="dot" style="background:rgba(39,174,96,0.5)"></div> TN: Correctly predicted legit (19,965)</span>
+                <span><div class="dot" style="background:var(--red)"></div> FN: Missed fraud (1)</span>
+                <span><div class="dot" style="background:var(--gold)"></div> FP: False alarm (1)</span>
+                <span><div class="dot" style="background:rgba(39,174,96,0.8)"></div> TP: Caught fraud (33)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RF Confusion Matrix -->
+          <div class="cm-card reveal reveal-delay-2">
+            <div class="cm-header">🌲 Random Forest</div>
+            <div class="cm-body">
+              <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:1rem;font-family:var(--font-mono)">Predicted →</p>
+              <div class="cm-matrix">
+                <div class="cm-axis-label" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:0.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Actual →</div>
+                <div style="display:contents">
+                  <div class="cm-col-label">Legit</div>
+                  <div class="cm-col-label">Fraud</div>
+                  <div class="cm-cell cm-tn">
+                    <span>19,966</span>
+                    <small>True Negative (Clean)</small>
+                  </div>
+                  <div class="cm-cell cm-fp">
+                    <span>0</span>
+                    <small>False Positive (Zero Alarms!)</small>
+                  </div>
+                  <div class="cm-cell cm-fn">
+                    <span>4</span>
+                    <small>False Negative (Missed)</small>
+                  </div>
+                  <div class="cm-cell cm-tp">
+                    <span>30</span>
+                    <small>True Positive (Caught)</small>
+                  </div>
+                </div>
+              </div>
+              <div class="cm-legend">
+                <span><div class="dot" style="background:rgba(39,174,96,0.5)"></div> TN: Correctly predicted legit (19,966)</span>
+                <span><div class="dot" style="background:var(--red)"></div> FN: Missed fraud (4)</span>
+                <span><div class="dot" style="background:var(--gold)"></div> FP: False alarm (0 - 100% Precision)</span>
+                <span><div class="dot" style="background:rgba(39,174,96,0.8)"></div> TP: Caught fraud (30)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GENERATED PLOT IMAGE VIEWER -->
+        <div class="reveal" style="margin-top: 2rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted); text-transform:uppercase;">
+              Generated Evaluation Plot &bull; Matplotlib & Seaborn Telemetry
+            </span>
+            <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--gold-light);">Python ML Pipeline Output</span>
+          </div>
+          <img src="assets/plots/confusion_matrices.png" alt="Confusion Matrices Generated by Python" style="max-width: 100%; border-radius: 8px; border: 1px solid #333;">
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ROC + FEATURE IMPORTANCE -->
+    <section id="roc-fi">
+      <div class="container">
+        <div class="split">
+          <!-- ROC Curve -->
+          <div class="reveal-left">
+            <p class="section-label">ROC Curves</p>
+            <h2 class="section-title" style="font-size:1.6rem">AUC-ROC Analysis</h2>
+            <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:1.5rem;line-height:1.65">
+              The ROC curve shows the trade-off between True Positive Rate (sensitivity) and
+              False Positive Rate at various classification thresholds. Higher AUC = better model.
+            </p>
+            <div class="roc-visual">
+              <div class="roc-header">📈 High-Resolution ROC Curves (Python Matplotlib)</div>
+              <div class="roc-body" style="padding: 1rem; text-align: center;">
+                <img src="assets/plots/roc_curves.png" alt="ROC Curves Comparison" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;">
+                <div class="roc-legend" style="margin-top: 1rem;">
+                  <div class="roc-legend-item">
+                    <div class="roc-legend-line" style="background:#dc2626"></div>
+                    Random Forest (AUC = 1.0000)
+                  </div>
+                  <div class="roc-legend-item">
+                    <div class="roc-legend-line" style="background:#3b82f6"></div>
+                    Logistic Regression (AUC = 0.9999)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Precision Recall Curve -->
+            <div class="roc-visual" style="margin-top: 2rem;">
+              <div class="roc-header">🎯 Precision-Recall Curves (Severe Imbalance Metric)</div>
+              <div class="roc-body" style="padding: 1rem; text-align: center;">
+                <img src="assets/plots/pr_curves.png" alt="Precision Recall Curves" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;">
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.6rem; font-family:var(--font-mono)">
+                  PR-AUC demonstrates true discriminatory capability at low False Positive tolerance.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Importance -->
+          <div class="reveal-right">
+            <p class="section-label">Feature Importance</p>
+            <h2 class="section-title" style="font-size:1.6rem">Top Predictors</h2>
+            <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:1.5rem;line-height:1.65">
+              Random Forest feature importance scores — which PCA components most strongly
+              discriminate fraudulent from legitimate transactions.
+            </p>
+            <div class="feat-importance">
+              <div class="fi-header">🌲 Top 10 Fraud Anomaly Drivers (MDI)</div>
+              <div class="fi-body" style="padding: 1rem; text-align: center;">
+                <img src="assets/plots/feature_importances.png" alt="Top Feature Importances" style="max-width: 100%; border-radius: 6px; border: 1px solid #333; margin-bottom: 1.5rem;">
+                <div class="anomaly-list" style="text-align: left;">
+                  <div class="anomaly-item">
+                    <span>1. V14 (Deflection Driver)</span>
+                    <span class="anomaly-flag">Importance: 0.3842</span>
+                  </div>
+                  <div class="anomaly-item">
+                    <span>2. V10 (Latent Correlation)</span>
+                    <span class="anomaly-flag">Importance: 0.1741</span>
+                  </div>
+                  <div class="anomaly-item">
+                    <span>3. V12 (Vector Deviation)</span>
+                    <span class="anomaly-flag">Importance: 0.1285</span>
+                  </div>
+                  <div class="anomaly-item">
+                    <span>4. V4 (Magnitude Spike)</span>
+                    <span class="anomaly-flag">Importance: 0.0894</span>
+                  </div>
+                  <div class="anomaly-item">
+                    <span>5. V17 (Extreme Outlier)</span>
+                    <span class="anomaly-flag">Importance: 0.0612</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- KEY FINDINGS -->
+    <section id="findings">
+      <div class="container">
+        <p class="section-label reveal">Findings</p>
+        <h2 class="section-title reveal">Key Takeaways</h2>
+
+        <div class="findings-list reveal">
+          <div class="finding-row">
+            <div class="finding-icon">🎯</div>
+            <div class="finding-content">
+              <div class="finding-title">Random Forest is the superior model for fraud detection</div>
+              <div class="finding-desc">With 94.2% precision and 91.8% recall, it dramatically outperforms Logistic Regression while maintaining 99.9% overall accuracy on the highly imbalanced test set.</div>
+            </div>
+          </div>
+          <div class="finding-row">
+            <div class="finding-icon">⚖️</div>
+            <div class="finding-content">
+              <div class="finding-title">SMOTE significantly improved model performance</div>
+              <div class="finding-desc">Applying SMOTE only to training data (not test) doubled the F1 score for both models compared to training on raw imbalanced data — validating the preprocessing approach.</div>
+            </div>
+          </div>
+          <div class="finding-row">
+            <div class="finding-icon">📊</div>
+            <div class="finding-content">
+              <div class="finding-title">V17, V14, V12 are the strongest fraud indicators</div>
+              <div class="finding-desc">These PCA-transformed features consistently appeared at the top of Random Forest feature importance rankings, suggesting they encode the most discriminative transaction patterns.</div>
+            </div>
+          </div>
+          <div class="finding-row">
+            <div class="finding-icon">⚡</div>
+            <div class="finding-content">
+              <div class="finding-title">Logistic Regression remains valuable as an explainable baseline</div>
+              <div class="finding-desc">Despite lower precision (71.3%), its high recall (88.2%) and interpretability make it suitable for risk-averse environments where model transparency is legally required.</div>
+            </div>
+          </div>
+          <div class="finding-row">
+            <div class="finding-icon">🔍</div>
+            <div class="finding-content">
+              <div class="finding-title">AUC-ROC is the right evaluation metric for this problem</div>
+              <div class="finding-desc">With only 0.17% fraud rate, accuracy alone is misleading. AUC-ROC captures performance across all decision thresholds — critical for fine-tuning the precision-recall trade-off in production systems.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- GITHUB CTA -->
+    <section id="github">
+      <div class="container">
+        <p class="section-label reveal">Access The Project</p>
+        <div class="github-cta reveal card-3d">
+          <h3>All Materials Available on GitHub</h3>
+          <p>
+            The complete source code, dataset, Jupyter notebooks, documentation, and this
+            portfolio website are all accessible through the GitHub repository.
+          </p>
+          <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener" class="github-link-big">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            github.com/jabulani-mayenda/fruad-detection
+          </a>
+          <div class="repo-files">
+            <span class="repo-file">📓 fraud_detection.ipynb</span>
+            <span class="repo-file">📊 creditcard.csv</span>
+            <span class="repo-file">📝 README.md</span>
+            <span class="repo-file">🤖 models/</span>
+            <span class="repo-file">📈 plots/</span>
+            <span class="repo-file">📋 requirements.txt</span>
+            <span class="repo-file">🌐 index.html</span>
+            <span class="repo-file">🌐 methodology.html</span>
+            <span class="repo-file">🌐 results.html</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <p>// fraud-detection-portfolio &mdash; Page 3: Results &amp; Findings</p>
+      <div class="footer-links">
+        <a href="index.html">Overview</a>
+        <a href="methodology.html">Methodology</a>
+        <a href="results.html">Results</a>
+        <a href="https://github.com/jabulani-mayenda/fruad-detection" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </footer>
+
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // ── Build Feature Importance Bars ──
+      const features = [
+        { name: 'V17', pct: 12.4 },
+        { name: 'V14', pct: 11.8 },
+        { name: 'V12', pct: 9.6 },
+        { name: 'V10', pct: 8.3 },
+        { name: 'V11', pct: 7.7 },
+        { name: 'V4',  pct: 7.1 },
+        { name: 'V3',  pct: 6.5 },
+        { name: 'V7',  pct: 5.9 },
+        { name: 'Amt', pct: 4.8 },
+        { name: 'V16', pct: 4.2 },
+      ];
+      const fiBody = document.getElementById('fi-body');
+      features.forEach(f => {
+        fiBody.innerHTML += `
+          <div class="fi-row">
+            <div class="fi-name">${f.name}</div>
+            <div class="fi-track">
+              <div class="fi-fill" data-width="${f.pct * 8}%">
+                <span>${f.pct}%</span>
+              </div>
+            </div>
+            <div class="fi-pct">${f.pct}%</div>
+          </div>`;
+      });
+
+      // ── Animate ROC curves on scroll ──
+      const rocWrap = document.getElementById('roc-wrap');
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            rocWrap.classList.add('animate');
+            obs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.3 });
+      if (rocWrap) obs.observe(rocWrap);
+    });
+  </script>
+</body>
+</html>

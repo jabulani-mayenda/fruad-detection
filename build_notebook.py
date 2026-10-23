@@ -1,0 +1,400 @@
+"""
+Generates the complete academic Jupyter Notebook: fraud_detection.ipynb
+"""
+
+import json
+
+notebook = {
+    "cells": [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# Credit Card Fraud Detection Pipeline\n",
+                "### Machine Learning Benchmark: Logistic Regression vs. Random Forest with SMOTE Imbalance Handling\n",
+                "\n",
+                "**Author:** Jabulani Mayenda  \n",
+                "**Repository:** [github.com/jabulani-mayenda/fruad-detection](https://github.com/jabulani-mayenda/fruad-detection)  \n",
+                "\n",
+                "---\n",
+                "\n",
+                "## 1. Executive Summary & Problem Formulation\n",
+                "Financial transaction systems process billions of operations daily. Among these, fraudulent activities account for a tiny fraction (~0.17%), yet inflict catastrophic financial and reputational losses.\n",
+                "\n",
+                "### Key Challenges:\n",
+                "1. **Extreme Class Imbalance:** Normal transactions outnumber fraud ~578 to 1. Traditional classifiers optimizing accuracy trivially achieve 99.8% by predicting zero fraud, missing all attacks.\n",
+                "2. **Asymmetric Error Costs:** False Negatives (allowing fraud) cause immediate capital loss; False Positives cause customer friction.\n",
+                "3. **Dimensionality & Privacy:** Features $V_1$ through $V_{28}$ are PCA-transformed to protect cardholder privacy, requiring algorithms that excel on latent spatial manifolds.\n",
+                "\n",
+                "This study compares two algorithmic paradigms:\n",
+                "- **Logistic Regression** (Linear probabilistic model with Balanced Cost Weighting)\n",
+                "- **Random Forest Classifier** (Non-linear ensemble with bootstrap aggregation)\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 2. Environment Setup & Dependency Imports"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 1,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import os\n",
+                "import numpy as np\n",
+                "import pandas as pd\n",
+                "import matplotlib.pyplot as plt\n",
+                "import seaborn as sns\n",
+                "\n",
+                "from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold\n",
+                "from sklearn.preprocessing import StandardScaler\n",
+                "from sklearn.linear_model import LogisticRegression\n",
+                "from sklearn.ensemble import RandomForestClassifier\n",
+                "from sklearn.metrics import (\n",
+                "    classification_report,\n",
+                "    confusion_matrix,\n",
+                "    roc_auc_score,\n",
+                "    roc_curve,\n",
+                "    precision_recall_curve,\n",
+                "    average_precision_score,\n",
+                "    f1_score,\n",
+                "    precision_score,\n",
+                "    recall_score,\n",
+                "    accuracy_score\n",
+                ")\n",
+                "from imblearn.over_sampling import SMOTE\n",
+                "\n",
+                "# Visualization aesthetics\n",
+                "plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')\n",
+                "plt.rcParams['figure.figsize'] = (10, 6)\n",
+                "print('[+] All libraries successfully imported.')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 3. Dataset Loading & Exploratory Data Analysis (EDA)"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 2,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# Load the dataset\n",
+                "csv_path = 'creditcard.csv'\n",
+                "df = pd.read_csv(csv_path)\n",
+                "\n",
+                "print(f'Dataset Shape: {df.shape[0]:,} rows, {df.shape[1]} columns')\n",
+                "display(df.head())\n",
+                "\n",
+                "# Target Distribution Analysis\n",
+                "class_counts = df['Class'].value_counts()\n",
+                "fraud_pct = (class_counts[1] / len(df)) * 100\n",
+                "\n",
+                "print(f'Class 0 (Legitimate): {class_counts[0]:,} ({100 - fraud_pct:.3f}%)')\n",
+                "print(f'Class 1 (Fraudulent): {class_counts[1]:,} ({fraud_pct:.3f}%)')\n",
+                "print(f'Imbalance Ratio: {class_counts[0] // class_counts[1]}:1')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Visualizing Class Imbalance and Transaction Amounts"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 3,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n",
+                "\n",
+                "# Class Imbalance Bar Plot\n",
+                "axes[0].bar(['Legitimate (0)', 'Fraud (1)'], [class_counts[0], class_counts[1]], color=['#2563eb', '#dc2626'])\n",
+                "axes[0].set_yscale('log')\n",
+                "axes[0].set_title('Transaction Volume by Class (Log Scale)', fontsize=13, fontweight='bold')\n",
+                "axes[0].set_ylabel('Number of Transactions (Log)')\n",
+                "\n",
+                "# Amount Distribution Comparison\n",
+                "sns.boxplot(x='Class', y='Amount', data=df, ax=axes[1], palette=['#2563eb', '#dc2626'])\n",
+                "axes[1].set_yscale('log')\n",
+                "axes[1].set_title('Transaction Amount by Class ($)', fontsize=13, fontweight='bold')\n",
+                "axes[1].set_xticklabels(['Legitimate', 'Fraud'])\n",
+                "\n",
+                "plt.tight_layout()\n",
+                "plt.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 4. Feature Preprocessing & Stratified Splitting\n",
+                "- PCA features $V_1$ to $V_{28}$ are already zero-centered with standard unit variance.\n",
+                "- `Time` and `Amount` must be standardized to prevent scale dominance.\n",
+                "- We perform an 80/20 Stratified Split to guarantee exact fraud representation across train and test partitions."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 4,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "X = df.drop(columns=['Class'])\n",
+                "y = df['Class']\n",
+                "\n",
+                "# Standardize Time and Amount\n",
+                "scaler = StandardScaler()\n",
+                "X_scaled = X.copy()\n",
+                "X_scaled[['Time', 'Amount']] = scaler.fit_transform(X[['Time', 'Amount']])\n",
+                "\n",
+                "# Stratified 80/20 train/test split\n",
+                "X_train, X_test, y_train, y_test = train_test_split(\n",
+                "    X_scaled, y, test_size=0.20, random_state=42, stratify=y\n",
+                ")\n",
+                "\n",
+                "print(f'Training Samples: {len(X_train):,} ({y_train.sum():,} fraud)')\n",
+                "print(f'Testing Samples:  {len(X_test):,} ({y_test.sum():,} fraud)')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 5. Resampling with SMOTE (Synthetic Minority Over-sampling)\n",
+                "**Crucial Machine Learning Rule:** SMOTE must ONLY be applied to the **training partition** to prevent data leakage."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 5,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "print(f'Before SMOTE - Class 0: {(y_train == 0).sum():,}, Class 1: {(y_train == 1).sum():,}')\n",
+                "\n",
+                "smote = SMOTE(sampling_strategy=0.20, random_state=42)\n",
+                "X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)\n",
+                "\n",
+                "print(f'After SMOTE  - Class 0: {(y_train_smote == 0).sum():,}, Class 1: {(y_train_smote == 1).sum():,}')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 6. Model 1: Logistic Regression\n",
+                "Trained with class balancing on the resampled feature space."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 6,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "lr = LogisticRegression(max_iter=1000, random_state=42, class_weight='balanced')\n",
+                "lr.fit(X_train_smote, y_train_smote)\n",
+                "\n",
+                "lr_pred = lr.predict(X_test)\n",
+                "lr_prob = lr.predict_proba(X_test)[:, 1]\n",
+                "\n",
+                "print('--- LOGISTIC REGRESSION CLASSIFICATION REPORT ---')\n",
+                "print(classification_report(y_test, lr_pred, digits=4))\n",
+                "print(f'ROC-AUC Score: {roc_auc_score(y_test, lr_prob):.4f}')\n",
+                "print(f'Average Precision (PR-AUC): {average_precision_score(y_test, lr_prob):.4f}')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 7. Model 2: Random Forest Classifier\n",
+                "An ensemble of 100 decorrelated decision trees with max depth regularized at 14."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 7,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "rf = RandomForestClassifier(\n",
+                "    n_estimators=100,\n",
+                "    max_depth=14,\n",
+                "    min_samples_split=5,\n",
+                "    random_state=42,\n",
+                "    class_weight='balanced',\n",
+                "    n_jobs=-1\n",
+                ")\n",
+                "rf.fit(X_train_smote, y_train_smote)\n",
+                "\n",
+                "rf_pred = rf.predict(X_test)\n",
+                "rf_prob = rf.predict_proba(X_test)[:, 1]\n",
+                "\n",
+                "print('--- RANDOM FOREST CLASSIFICATION REPORT ---')\n",
+                "print(classification_report(y_test, rf_pred, digits=4))\n",
+                "print(f'ROC-AUC Score: {roc_auc_score(y_test, rf_prob):.4f}')\n",
+                "print(f'Average Precision (PR-AUC): {average_precision_score(y_test, rf_prob):.4f}')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 8. Comparative Evaluation & Diagnostic Visualizations"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 8,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n",
+                "\n",
+                "# Confusion Matrices\n",
+                "cm_lr = confusion_matrix(y_test, lr_pred)\n",
+                "cm_rf = confusion_matrix(y_test, rf_pred)\n",
+                "\n",
+                "sns.heatmap(cm_lr, annot=True, fmt='d', cmap='Blues', ax=axes[0])\n",
+                "axes[0].set_title('Logistic Regression Confusion Matrix', fontsize=12, fontweight='bold')\n",
+                "axes[0].set_xlabel('Predicted Label')\n",
+                "axes[0].set_ylabel('True Label')\n",
+                "\n",
+                "sns.heatmap(cm_rf, annot=True, fmt='d', cmap='Reds', ax=axes[1])\n",
+                "axes[1].set_title('Random Forest Confusion Matrix', fontsize=12, fontweight='bold')\n",
+                "axes[1].set_xlabel('Predicted Label')\n",
+                "axes[1].set_ylabel('True Label')\n",
+                "\n",
+                "plt.tight_layout()\n",
+                "plt.show()"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 9,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# ROC and Precision-Recall Curves\n",
+                "fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n",
+                "\n",
+                "# ROC Curves\n",
+                "fpr_lr, tpr_lr, _ = roc_curve(y_test, lr_prob)\n",
+                "fpr_rf, tpr_rf, _ = roc_curve(y_test, rf_prob)\n",
+                "\n",
+                "axes[0].plot(fpr_lr, tpr_lr, label=f'Logistic Regression (AUC = {roc_auc_score(y_test, lr_prob):.4f})', color='#2563eb', lw=2)\n",
+                "axes[0].plot(fpr_rf, tpr_rf, label=f'Random Forest (AUC = {roc_auc_score(y_test, rf_prob):.4f})', color='#dc2626', lw=2)\n",
+                "axes[0].plot([0, 1], [0, 1], 'k--', alpha=0.5)\n",
+                "axes[0].set_title('ROC Curves', fontsize=13, fontweight='bold')\n",
+                "axes[0].set_xlabel('False Positive Rate')\n",
+                "axes[0].set_ylabel('True Positive Rate')\n",
+                "axes[0].legend()\n",
+                "\n",
+                "# PR Curves\n",
+                "prec_lr, rec_lr, _ = precision_recall_curve(y_test, lr_prob)\n",
+                "prec_rf, rec_rf, _ = precision_recall_curve(y_test, rf_prob)\n",
+                "\n",
+                "axes[1].plot(rec_lr, prec_lr, label=f'Logistic Regression (AP = {average_precision_score(y_test, lr_prob):.4f})', color='#2563eb', lw=2)\n",
+                "axes[1].plot(rec_rf, prec_rf, label=f'Random Forest (AP = {average_precision_score(y_test, rf_prob):.4f})', color='#dc2626', lw=2)\n",
+                "axes[1].set_title('Precision-Recall Curves', fontsize=13, fontweight='bold')\n",
+                "axes[1].set_xlabel('Recall')\n",
+                "axes[1].set_ylabel('Precision')\n",
+                "axes[1].legend()\n",
+                "\n",
+                "plt.tight_layout()\n",
+                "plt.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 9. Top Fraud Predictive Indicators (Feature Importance)\n",
+                "Visualizing which latent PCA features provide the strongest signal for fraud identification."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 10,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "feature_names = list(X.columns)\n",
+                "importances = rf.feature_importances_\n",
+                "top_indices = np.argsort(importances)[::-1][:10]\n",
+                "\n",
+                "plt.figure(figsize=(10, 5))\n",
+                "plt.barh([feature_names[i] for i in top_indices][::-1], [importances[i] for i in top_indices][::-1], color='#dc2626')\n",
+                "plt.title('Top 10 Feature Importances (Random Forest Gini Impurity Reduction)', fontsize=13, fontweight='bold')\n",
+                "plt.xlabel('Importance Score')\n",
+                "plt.tight_layout()\n",
+                "plt.show()"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "## 10. Real-time Inference Function\n",
+                "Function that scores a single transaction dictionary and issues automated fraud alerts."
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": 11,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "def detect_fraud(transaction_dict):\n",
+                "    df_single = pd.DataFrame([transaction_dict])\n",
+                "    df_single[['Time', 'Amount']] = scaler.transform(df_single[['Time', 'Amount']])\n",
+                "    \n",
+                "    rf_prob = rf.predict_proba(df_single)[0, 1]\n",
+                "    lr_prob = lr.predict_proba(df_single)[0, 1]\n",
+                "    consensus_prob = (rf_prob * 0.7) + (lr_prob * 0.3)\n",
+                "    \n",
+                "    decision = 'FRAUD' if consensus_prob >= 0.50 else 'LEGITIMATE'\n",
+                "    print(f'Decision:       {decision}')\n",
+                "    print(f'Consensus Prob: {consensus_prob*100:.2f}%')\n",
+                "    print(f'RF Prob:        {rf_prob*100:.2f}% | LR Prob: {lr_prob*100:.2f}%')\n",
+                "    return decision, consensus_prob\n",
+                "\n",
+                "# Test on first test transaction\n",
+                "test_tx = X.iloc[y_test.index[0]].to_dict()\n",
+                "actual = y_test.iloc[0]\n",
+                "print(f'Ground Truth Label: {\"FRAUD\" if actual == 1 else \"LEGITIMATE\"}')\n",
+                "detect_fraud(test_tx);"
+            ]
+        }
+    ],
+    "metadata": {
+        "kernelspec": {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3"
+        },
+        "language_info": {
+            "name": "python",
+            "version": "3.12.7"
+        }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 4
+}
+
+with open("fraud_detection.ipynb", "w", encoding="utf-8") as f:
+    json.dump(notebook, f, indent=2)
+
+print("[+] Generated fraud_detection.ipynb successfully.")

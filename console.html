@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sentinel — Fraud Operations Console</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#F4F8FC;
+  --surface:#FFFFFF;
+  --surface-2:#F8FBFE;
+  --line:#DCE7F2;
+  --line-2:#C7D7E7;
+  --ink:#172B42;
+  --ink-2:#53677D;
+  --ink-3:#708399;
+  --navy:#2563A6;
+  --navy-soft:#EAF3FB;
+  --green:#1A6B45;
+  --green-bg:#EAF3ED;
+  --amber:#8A5A08;
+  --amber-bg:#FBF3E4;
+  --red:#96231B;
+  --red-bg:#FBEDEB;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+}
+
+body{
+  font:13px/1.45 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+  padding:32px 24px 80px;
+}
+
+/* ── page chrome ─────────────────────────────── */
+.page-head{max-width:1280px;margin:0 auto 28px;display:flex;justify-content:space-between;align-items:flex-end}
+.page-head h1{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.page-head p{color:var(--ink-2);font-size:12.5px;margin-top:4px}
+.nav-back{font-size:12px;color:var(--navy);text-decoration:none;font-weight:550;display:inline-flex;align-items:center;gap:4px}
+.nav-back:hover{text-decoration:underline}
+.screen-label{
+  max-width:1280px;margin:0 auto 8px;
+  font:600 10.5px/1 -apple-system,sans-serif;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);
+}
+.screen-label span{color:var(--ink-2);font-weight:500;letter-spacing:0;text-transform:none;font-size:12px;margin-left:8px}
+
+.wrap{max-width:1280px;margin:0 auto 44px;overflow-x:auto}
+
+/* ── app frame ───────────────────────────────── */
+.app{
+  width:1280px;min-height:720px;
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  border-radius:5px;
+  overflow:hidden;
+  display:flex;
+  box-shadow:0 1px 1px rgba(16,18,22,.03),0 12px 32px -16px rgba(16,18,22,.16);
+}
+
+/* ── sidebar ─────────────────────────────────── */
+.side{
+  width:196px;flex:none;
+  background:var(--surface-2);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;
+}
+.side-top{padding:16px 16px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px}
+.mark{
+  width:22px;height:22px;border-radius:3px;background:var(--navy);
+  color:#fff;font:700 11px/22px -apple-system,sans-serif;text-align:center;flex:none;
+}
+.side-top b{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.side-top em{display:block;font:400 10px/1.3 -apple-system,sans-serif;color:var(--ink-3);font-style:normal;margin-top:1px}
+
+.nav{padding:10px 8px;flex:1}
+.nav a{
+  display:flex;align-items:center;gap:9px;
+  padding:6px 8px;border-radius:3px;
+  color:var(--ink-2);text-decoration:none;
+  font-size:12.5px;margin-bottom:1px;
+  cursor:pointer;
+}
+.nav a:hover{background:#EFEFEC;color:var(--ink)}
+.nav a.on{background:var(--navy-soft);color:var(--navy);font-weight:550}
+.nav svg{width:14px;height:14px;flex:none;opacity:.85}
+.nav .count{
+  margin-left:auto;font:500 10.5px/1 var(--mono);
+  background:#EAEAE6;color:var(--ink-2);
+  padding:2px 5px;border-radius:2px;
+}
+.nav a.on .count{background:var(--navy);color:#fff}
+.nav-sec{
+  font:600 9.5px/1 -apple-system,sans-serif;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);
+  padding:14px 10px 6px;
+}
+.side-foot{padding:10px 12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.avatar{
+  width:24px;height:24px;border-radius:50%;flex:none;
+  background:#DCDCE0;color:var(--ink-2);
+  font:600 10px/24px -apple-system,sans-serif;text-align:center;
+}
+.side-foot div{font-size:11.5px;line-height:1.3;overflow:hidden}
+.side-foot b{display:block;font-weight:550;white-space:nowrap}
+.side-foot span{color:var(--ink-3);font-size:10.5px}
+
+/* ── main column ─────────────────────────────── */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+
+.top{
+  height:48px;flex:none;
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
+  padding:0 18px;
+}
+.top h2{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.top .sep{width:1px;height:18px;background:var(--line)}
+.search{
+  flex:1;max-width:280px;height:28px;
+  border:1px solid var(--line-2);border-radius:3px;
+  background:var(--surface-2);
+  display:flex;align-items:center;gap:7px;padding:0 9px;
+  color:var(--ink-3);font-size:12px;
+}
+.search svg{width:13px;height:13px;flex:none}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+.btn{
+  height:28px;padding:0 11px;border-radius:3px;
+  border:1px solid var(--line-2);background:var(--surface);
+  font:500 12px/1 -apple-system,sans-serif;color:var(--ink);
+  cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+}
+.btn:hover{background:var(--surface-2)}
+.btn-primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn-primary:hover{background:#17304F}
+.btn-sm{height:24px;padding:0 8px;font-size:11.5px}
+
+.body{flex:1;display:flex;min-height:0}
+
+/* ── filter bar ──────────────────────────────── */
+.filters{
+  display:flex;align-items:center;gap:7px;
+  padding:10px 18px;border-bottom:1px solid var(--line);
+  flex-wrap:wrap;
+}
+.chip{
+  height:24px;padding:0 9px;border-radius:3px;
+  border:1px solid var(--line-2);background:var(--surface);
+  font-size:11.5px;color:var(--ink-2);
+  display:inline-flex;align-items:center;gap:5px;cursor:pointer;
+}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.chip .x{opacity:.5;font-size:13px;line-height:1}
+.filters .spacer{margin-left:auto}
+.meta{font-size:11.5px;color:var(--ink-3)}
+
+/* ── table ───────────────────────────────────── */
+.tbl-scroll{flex:1;overflow:auto}
+table{width:100%;border-collapse:collapse}
+thead th{
+  position:sticky;top:0;z-index:1;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--line-2);
+  font:600 10.5px/1 -apple-system,sans-serif;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  text-align:left;padding:8px 10px;white-space:nowrap;
+}
+thead th.num{text-align:right}
+tbody td{
+  padding:0 10px;height:33px;
+  border-bottom:1px solid #EFEFEC;
+  font-size:12.5px;color:var(--ink);
+  white-space:nowrap;
+}
+tbody tr:hover{background:#FAFAF9;cursor:pointer}
+tbody tr.sel{background:var(--navy-soft);box-shadow:inset 2px 0 0 var(--navy)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+td.dim{color:var(--ink-2)}
+td.amt{font-weight:550}
+
+/* score cell */
+.score{display:flex;align-items:center;gap:7px}
+.score .track{width:26px;height:3px;background:#E5E5E2;border-radius:1px;position:relative;flex:none}
+.score .track::after{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--w);background:currentColor;border-radius:1px}
+.score b{font:600 12px/1 var(--mono)}
+.score.hi{color:var(--red)}
+.score.md{color:var(--amber)}
+.score.lo{color:var(--green)}
+
+/* status pill */
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  height:19px;padding:0 7px;border-radius:2px;
+  font:600 10.5px/1 -apple-system,sans-serif;letter-spacing:.02em;
+}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex:none}
+.pill.block{background:var(--red-bg);color:var(--red)}
+.pill.review{background:var(--amber-bg);color:var(--amber)}
+.pill.approve{background:var(--green-bg);color:var(--green)}
+.pill.open{background:#EDEFF2;color:#4A5160}
+
+/* signal tags */
+.tags{display:flex;gap:3px}
+.tag{
+  font:600 9.5px/1 var(--mono);letter-spacing:.03em;
+  padding:3px 4px;border-radius:2px;
+  background:#EFEFEC;color:var(--ink-2);
+}
+.tag.hot{background:var(--red-bg);color:var(--red)}
+
+/* ── right rail ──────────────────────────────── */
+.rail{
+  width:236px;flex:none;
+  border-left:1px solid var(--line);
+  background:var(--surface-2);
+  padding:16px;
+}
+.rail h3{
+  font:600 10.5px/1 -apple-system,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  margin-bottom:12px;
+}
+.stat{margin-bottom:14px}
+.stat .k{font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between;margin-bottom:5px}
+.stat .k b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{height:4px;background:#E5E5E2;border-radius:1px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--navy);border-radius:1px}
+.bar.g i{background:var(--green)}
+.bar.a i{background:var(--amber)}
+.bar.r i{background:var(--red)}
+.divider{height:1px;background:var(--line);margin:16px 0}
+
+/* ── detail screen ───────────────────────────── */
+.detail{flex:1;display:flex;min-height:0}
+.dcol{flex:1;min-width:0;padding:20px;overflow:auto}
+.dcol.right{
+  width:330px;flex:none;
+  border-left:1px solid var(--line);
+  background:var(--surface-2);
+}
+.sec{margin-bottom:24px}
+.sec h4{
+  font:600 10.5px/1 -apple-system,sans-serif;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+  margin-bottom:10px;
+  padding-bottom:8px;border-bottom:1px solid var(--line);
+}
+.kv{display:grid;grid-template-columns:132px 1fr;gap:0}
+.kv dt{padding:6px 0;font-size:12px;color:var(--ink-2);border-bottom:1px solid #F1F1EE}
+.kv dd{padding:6px 0;font-size:12.5px;border-bottom:1px solid #F1F1EE;text-align:right}
+
+.gauge{text-align:center;padding:8px 0 18px}
+.gauge .num{font:600 40px/1 var(--mono);letter-spacing:-.03em;color:var(--red)}
+.gauge .lbl{font-size:11.5px;color:var(--ink-2);margin-top:7px}
+.gauge .verdict{
+  display:inline-block;margin-top:11px;
+  background:var(--red-bg);color:var(--red);
+  font:600 10.5px/1 -apple-system,sans-serif;letter-spacing:.06em;text-transform:uppercase;
+  padding:5px 9px;border-radius:2px;
+}
+
+.factor{display:flex;align-items:center;gap:9px;margin-bottom:9px;font-size:12px}
+.factor .n{flex:1;color:var(--ink-2)}
+.factor .w{width:48px;height:3px;background:#E5E5E2;border-radius:1px;flex:none;position:relative}
+.factor .w::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);background:var(--navy);border-radius:1px}
+.factor .v{font:600 11px/1 var(--mono);width:32px;text-align:right;color:var(--ink)}
+.factor.hot .w::after{background:var(--red)}
+.factor.hot .v{color:var(--red)}
+
+.rulehit{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border:1px solid var(--line);border-radius:3px;
+  background:var(--surface);margin-bottom:6px;font-size:12px;
+}
+.rulehit .rid{font:600 10.5px/1 var(--mono);color:var(--ink-3)}
+.rulehit .rn{flex:1;color:var(--ink)}
+.rulehit .rw{font:600 10.5px/1 -apple-system,sans-serif;color:var(--red)}
+
+.timeline{border-left:2px solid var(--line);padding-left:14px;margin-left:4px}
+.tl{position:relative;padding-bottom:14px}
+.tl::before{
+  content:"";position:absolute;left:-19px;top:4px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--line-2);
+}
+.tl.now::before{border-color:var(--navy);background:var(--navy)}
+.tl .t{font:500 10.5px/1 var(--mono);color:var(--ink-3);margin-bottom:3px}
+.tl .e{font-size:12.5px}
+.tl .e b{font-weight:600}
+
+/* ── rules screen ────────────────────────────── */
+.sw{
+  width:30px;height:17px;border-radius:9px;background:var(--navy);
+  position:relative;display:inline-block;flex:none;
+}
+.sw::after{
+  content:"";position:absolute;top:2px;left:15px;
+  width:13px;height:13px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.18);
+}
+.sw.off{background:#D0D0CC}
+.sw.off::after{left:2px}
+
+.thr{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.thr label{width:132px;font-size:12px;color:var(--ink-2);flex:none}
+.thr input[type=range]{flex:1;accent-color:var(--navy)}
+.thr .val{font:600 12px/1 var(--mono);width:38px;text-align:right}
+.thr .scale{display:flex;justify-content:space-between;font:400 10px/1 var(--mono);color:var(--ink-3);margin-top:5px}
+
+/* ── analytics ───────────────────────────────── */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.card{background:var(--surface);padding:15px 18px}
+.card .lbl{font:600 10.5px/1 -apple-system,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px}
+.card .big{font:600 23px/1 var(--mono);letter-spacing:-.02em}
+.card .sub{font-size:11.5px;color:var(--ink-2);margin-top:6px}
+.card .sub b{font-weight:600}
+.up{color:var(--red)}.down{color:var(--green)}
+
+.ana-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;flex:1}
+.ana-grid > div{padding:18px;border-right:1px solid var(--line)}
+.ana-grid > div:last-child{border-right:0}
+
+table.metrics{width:100%;font-size:12px}
+table.metrics td{padding:6px 0;border-bottom:1px solid #F1F1EE;height:auto}
+table.metrics td:last-child{text-align:right;font-family:var(--mono);font-weight:600}
+
+.cm{display:grid;grid-template-columns:64px 1fr 1fr;gap:2px;font-size:11.5px}
+.cm .h{font:600 10px/1 -apple-system,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);padding:0 0 7px;text-align:center}
+.cm .rl{font-size:11px;color:var(--ink-2);display:flex;align-items:center}
+.cm .cell{
+  padding:13px 8px;text-align:center;border-radius:2px;
+  font:600 15px/1 var(--mono);
+}
+.cm .cell small{display:block;font:400 10px/1 -apple-system,sans-serif;color:var(--ink-3);margin-top:5px;letter-spacing:.02em}
+.cm .tn{background:var(--green-bg);color:var(--green)}
+.cm .tp{background:var(--navy-soft);color:var(--navy)}
+.cm .fp{background:var(--amber-bg);color:var(--amber)}
+.cm .fn{background:var(--red-bg);color:var(--red)}
+
+.legend-row{display:flex;gap:16px;margin-top:14px;font-size:11.5px;color:var(--ink-2);flex-wrap:wrap}
+.legend-row i{display:inline-block;width:16px;height:2px;background:var(--navy);vertical-align:middle;margin-right:6px}
+.legend-row i.dash{background:repeating-linear-gradient(90deg,var(--ink-3) 0 4px,transparent 4px 8px)}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div>
+    <h1>Sentinel — Fraud Operations Console</h1>
+    <p>Operational interface &bull; Real-time fraud detection engine &bull; Production decision system</p>
+  </div>
+  <a href="index.html" class="nav-back">← Back to Portfolio Overview</a>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 1 — ALERT QUEUE
+     ══════════════════════════════════════════════════════ -->
+<div class="screen-label">01 — Alert queue <span>Analyst's default view. Sorted by risk, newest first.</span></div>
+<div class="wrap">
+<div class="app">
+
+  <aside class="side">
+    <div class="side-top">
+      <div class="mark">S</div>
+      <div><b>Sentinel</b><em>Fraud Ops</em></div>
+    </div>
+    <nav class="nav">
+      <a href="#" class="on">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+        Queue <span class="count">38</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l5 2.5v4c0 3-2 5-5 6-3-1-5-3-5-6v-4L8 2z"/></svg>
+        Cases <span class="count">12</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10M5 8h6M7 11h2"/></svg>
+        Rules
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V8M7 13V4M11 13v-6"/></svg>
+        Analytics
+      </a>
+      <div class="nav-sec">Configuration</div>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M14.5 8h-2M3.5 8h-2"/></svg>
+        Model
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="2.5"/><path d="M2.5 14c0-3 2.5-4.5 5.5-4.5S13.5 11 13.5 14"/></svg>
+        Team
+      </a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar">JM</div>
+      <div><b>J. Mayenda</b><span>Risk Lead</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <h2>Alert queue</h2>
+      <div class="sep"></div>
+      <div class="search">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+        Search card, merchant, case ID…
+      </div>
+      <div class="top-right">
+        <button class="btn btn-sm">Last 24 hours</button>
+        <button class="btn btn-sm">Export</button>
+        <button class="btn btn-sm btn-primary">Assign to me</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <span class="chip on">Needs review <span class="x">×</span></span>
+      <span class="chip">Score ≥ 70 <span class="x">×</span></span>
+      <span class="chip">Amount &gt; $500</span>
+      <span class="chip">Cross-border</span>
+      <span class="chip">New device</span>
+      <span class="spacer"></span>
+      <span class="meta">38 open · 6 unassigned · oldest 4m</span>
+    </div>
+
+    <div class="body">
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Score</th>
+              <th>Time</th>
+              <th>Card</th>
+              <th>Merchant</th>
+              <th>Category</th>
+              <th class="num">Amount</th>
+              <th>Signals</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="sel">
+              <td><div class="score hi"><span class="track" style="--w:94%"></span><b>94</b></div></td>
+              <td class="mono">14:02:18</td>
+              <td class="mono">•••• 4821</td>
+              <td>LUXE Electronics</td>
+              <td class="dim">electronics</td>
+              <td class="num amt">$2,840.00</td>
+              <td><div class="tags"><span class="tag hot">GEO</span><span class="tag hot">VEL</span><span class="tag">CNP</span></div></td>
+              <td><span class="pill block">Blocked</span></td>
+            </tr>
+            <tr>
+              <td><div class="score hi"><span class="track" style="--w:89%"></span><b>89</b></div></td>
+              <td class="mono">14:01:44</td>
+              <td class="mono">•••• 7730</td>
+              <td>Pulse Digital</td>
+              <td class="dim">online_digital</td>
+              <td class="num amt">$612.40</td>
+              <td><div class="tags"><span class="tag hot">BIN</span><span class="tag hot">VEL</span></div></td>
+              <td><span class="pill review">Review</span></td>
+            </tr>
+            <tr>
+              <td><div class="score hi"><span class="track" style="--w:86%"></span><b>86</b></div></td>
+              <td class="mono">14:00:09</td>
+              <td class="mono">•••• 1194</td>
+              <td>Northgate Fuel</td>
+              <td class="dim">fuel</td>
+              <td class="num amt">$148.20</td>
+              <td><div class="tags"><span class="tag hot">GEO</span><span class="tag">NEW</span></div></td>
+              <td><span class="pill review">Review</span></td>
+            </tr>
+            <tr>
+              <td><div class="score hi"><span class="track" style="--w:81%"></span><b>81</b></div></td>
+              <td class="mono">13:58:52</td>
+              <td class="mono">•••• 5502</td>
+              <td>Harrington &amp; Co</td>
+              <td class="dim">retail</td>
+              <td class="num amt">$3,190.00</td>
+              <td><div class="tags"><span class="tag hot">AMT</span><span class="tag hot">GEO</span></div></td>
+              <td><span class="pill review">Review</span></td>
+            </tr>
+            <tr>
+              <td><div class="score md"><span class="track" style="--w:74%"></span><b>74</b></div></td>
+              <td class="mono">13:57:31</td>
+              <td class="mono">•••• 3391</td>
+              <td>Skyline Travel</td>
+              <td class="dim">travel</td>
+              <td class="num amt">$1,455.00</td>
+              <td><div class="tags"><span class="tag hot">GEO</span><span class="tag">CNP</span></div></td>
+              <td><span class="pill review">Review</span></td>
+            </tr>
+            <tr>
+              <td><div class="score md"><span class="track" style="--w:68%"></span><b>68</b></div></td>
+              <td class="mono">13:55:12</td>
+              <td class="mono">•••• 8824</td>
+              <td>CryptoBridge</td>
+              <td class="dim">crypto</td>
+              <td class="num amt">$900.00</td>
+              <td><div class="tags"><span class="tag hot">MCC</span></div></td>
+              <td><span class="pill review">Review</span></td>
+            </tr>
+            <tr>
+              <td><div class="score md"><span class="track" style="--w:61%"></span><b>61</b></div></td>
+              <td class="mono">13:54:47</td>
+              <td class="mono">•••• 2018</td>
+              <td>Velo Sports</td>
+              <td class="dim">retail</td>
+              <td class="num amt">$320.75</td>
+              <td><div class="tags"><span class="tag">NEW</span></div></td>
+              <td><span class="pill review">Review</span></td>
+            </tr>
+            <tr>
+              <td><div class="score md"><span class="track" style="--w:55%"></span><b>55</b></div></td>
+              <td class="mono">13:52:03</td>
+              <td class="mono">•••• 6647</td>
+              <td>Metro Transit</td>
+              <td class="dim">transit</td>
+              <td class="num amt">$18.50</td>
+              <td><div class="tags"><span class="tag">VEL</span></div></td>
+              <td><span class="pill review">Review</span></td>
+            </tr>
+            <tr>
+              <td><div class="score lo"><span class="track" style="--w:22%"></span><b>22</b></div></td>
+              <td class="mono">13:50:39</td>
+              <td class="mono">•••• 4109</td>
+              <td>Kirana Grocers</td>
+              <td class="dim">grocery</td>
+              <td class="num amt">$84.12</td>
+              <td><div class="tags"><span class="tag">—</span></div></td>
+              <td><span class="pill approve">Approved</span></td>
+            </tr>
+            <tr>
+              <td><div class="score lo"><span class="track" style="--w:14%"></span><b>14</b></div></td>
+              <td class="mono">13:49:58</td>
+              <td class="mono">•••• 9302</td>
+              <td>Bellweather Dining</td>
+              <td class="dim">restaurant</td>
+              <td class="num amt">$62.00</td>
+              <td><div class="tags"><span class="tag">—</span></div></td>
+              <td><span class="pill approve">Approved</span></td>
+            </tr>
+            <tr>
+              <td><div class="score lo"><span class="track" style="--w:9%"></span><b>9</b></div></td>
+              <td class="mono">13:48:21</td>
+              <td class="mono">•••• 7712</td>
+              <td>CityPower Utilities</td>
+              <td class="dim">utilities</td>
+              <td class="num amt">$211.30</td>
+              <td><div class="tags"><span class="tag">—</span></div></td>
+              <td><span class="pill approve">Approved</span></td>
+            </tr>
+            <tr>
+              <td><div class="score lo"><span class="track" style="--w:7%"></span><b>7</b></div></td>
+              <td class="mono">13:47:02</td>
+              <td class="mono">•••• 5530</td>
+              <td>Kirana Grocers</td>
+              <td class="dim">grocery</td>
+              <td class="num amt">$43.88</td>
+              <td><div class="tags"><span class="tag">—</span></div></td>
+              <td><span class="pill approve">Approved</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="rail">
+        <h3>Queue health</h3>
+        <div class="stat">
+          <div class="k"><span>Open alerts</span><b>38</b></div>
+          <div class="bar"><i style="width:62%"></i></div>
+        </div>
+        <div class="stat">
+          <div class="k"><span>SLA met (4h)</span><b>91%</b></div>
+          <div class="bar g"><i style="width:91%"></i></div>
+        </div>
+        <div class="stat">
+          <div class="k"><span>Confirmed fraud rate</span><b>34%</b></div>
+          <div class="bar a"><i style="width:34%"></i></div>
+        </div>
+        <div class="stat">
+          <div class="k"><span>False positive rate</span><b>2.1%</b></div>
+          <div class="bar g"><i style="width:21%"></i></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3>Blocked today</h3>
+        <div class="stat">
+          <div class="k"><span>Count</span><b>147</b></div>
+        </div>
+        <div class="stat">
+          <div class="k"><span>Value stopped</span><b>$88,420</b></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h3>Top signal</h3>
+        <p style="font-size:12px;color:var(--ink-2);line-height:1.5">
+          <b style="color:var(--ink)">GEO mismatch</b> appears in 58% of today's confirmed fraud.
+        </p>
+      </aside>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 2 — CASE DETAIL
+     ══════════════════════════════════════════════════════ -->
+<div class="screen-label">02 — Case detail <span>Everything an analyst needs to make a call, on one screen.</span></div>
+<div class="wrap">
+<div class="app">
+
+  <aside class="side">
+    <div class="side-top">
+      <div class="mark">S</div>
+      <div><b>Sentinel</b><em>Fraud Ops</em></div>
+    </div>
+    <nav class="nav">
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+        Queue <span class="count">38</span>
+      </a>
+      <a href="#" class="on">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l5 2.5v4c0 3-2 5-5 6-3-1-5-3-5-6v-4L8 2z"/></svg>
+        Cases <span class="count">12</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10M5 8h6M7 11h2"/></svg>
+        Rules
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V8M7 13V4M11 13v-6"/></svg>
+        Analytics
+      </a>
+      <div class="nav-sec">Configuration</div>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M14.5 8h-2M3.5 8h-2"/></svg>
+        Model
+      </a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar">JM</div>
+      <div><b>J. Mayenda</b><span>Risk Lead</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <button class="btn btn-sm">← Queue</button>
+      <div class="sep"></div>
+      <h2>CASE-4471</h2>
+      <span class="pill open" style="margin-left:2px">Open · assigned to you</span>
+      <div class="top-right">
+        <button class="btn btn-sm">Request info</button>
+        <button class="btn btn-sm">Clear</button>
+        <button class="btn btn-sm btn-primary">Confirm fraud</button>
+      </div>
+    </div>
+
+    <div class="detail">
+
+      <!-- left column -->
+      <div class="dcol">
+
+        <div class="sec">
+          <h4>Transaction</h4>
+          <dl class="kv">
+            <dt>Amount</dt><dd style="font-weight:600">$2,840.00 USD</dd>
+            <dt>Merchant</dt><dd>LUXE Electronics</dd>
+            <dt>Category (MCC)</dt><dd>5732 — Electronics</dd>
+            <dt>Channel</dt><dd>Card not present</dd>
+            <dt>Timestamp</dt><dd>14:02:18 UTC · 2026-10-06</dd>
+            <dt>Terminal country</dt><dd>NG <span style="color:var(--red)">≠ billing</span></dd>
+            <dt>IP country</dt><dd>RO</dd>
+            <dt>Authorization</dt><dd><span class="pill block">Declined</span></dd>
+          </dl>
+        </div>
+
+        <div class="sec">
+          <h4>Card &amp; customer</h4>
+          <dl class="kv">
+            <dt>Card</dt><dd class="mono">•••• •••• •••• 4821</dd>
+            <dt>Issuer</dt><dd>Meridian Bank · US</dd>
+            <dt>Card age</dt><dd>6 years 2 months</dd>
+            <dt>Account status</dt><dd>Good standing</dd>
+            <dt>Lifetime txns</dt><dd>1,204</dd>
+            <dt>Avg ticket</dt><dd>$67.40</dd>
+            <dt>This txn vs avg</dt><dd style="color:var(--red);font-weight:600">42× above baseline</dd>
+            <dt>Prior chargebacks</dt><dd>0</dd>
+          </dl>
+        </div>
+
+        <div class="sec">
+          <h4>Activity — last 24 hours</h4>
+          <dl class="kv">
+            <dt>Transactions</dt><dd>9 <span style="color:var(--red)">(baseline: 2)</span></dd>
+            <dt>Distinct merchants</dt><dd>7</dd>
+            <dt>Distinct countries</dt><dd>4 <span style="color:var(--red)">(US, NG, RO, TR)</span></dd>
+            <dt>Distinct devices</dt><dd>3 <span style="color:var(--amber)">(1 new)</span></dd>
+            <dt>Linked cards on device</dt><dd>5 <span style="color:var(--red)">— ring indicator</span></dd>
+            <dt>Total attempted</dt><dd>$6,912.40</dd>
+          </dl>
+        </div>
+
+        <div class="sec">
+          <h4>Case timeline</h4>
+          <div class="timeline">
+            <div class="tl now">
+              <div class="t">14:02:18</div>
+              <div class="e">Transaction <b>declined</b> by rules engine — hard block on GEO + VEL.</div>
+            </div>
+            <div class="tl">
+              <div class="t">14:02:18</div>
+              <div class="e">Model score <b>94</b> returned in 41ms.</div>
+            </div>
+            <div class="tl">
+              <div class="t">13:58:02</div>
+              <div class="e">Device fingerprint <b>d_9f2a…</b> first seen on this card.</div>
+            </div>
+            <div class="tl">
+              <div class="t">13:41:55</div>
+              <div class="e">Attempted txn $1,990 at <b>Istanbul duty-free</b> — approved.</div>
+            </div>
+            <div class="tl">
+              <div class="t">11:20:10</div>
+              <div class="e">Card used in <b>Lagos, NG</b> — approved.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- right column -->
+      <div class="dcol right">
+
+        <div class="gauge">
+          <div class="num">94</div>
+          <div class="lbl">Risk score · 0–100</div>
+          <div class="verdict">Blocked</div>
+        </div>
+
+        <div class="sec">
+          <h4>Contributing factors</h4>
+          <div class="factor hot"><span class="n">Geo mismatch (terminal ≠ billing)</span><span class="w" style="--w:100%"></span><span class="v">0.31</span></div>
+          <div class="factor hot"><span class="n">Velocity — 9 txns / 24h</span><span class="w" style="--w:88%"></span><span class="v">0.27</span></div>
+          <div class="factor hot"><span class="n">Amount vs card baseline</span><span class="w" style="--w:74%"></span><span class="v">0.19</span></div>
+          <div class="factor"><span class="n">High-risk MCC (electronics)</span><span class="w" style="--w:52%"></span><span class="v">0.11</span></div>
+          <div class="factor"><span class="n">New device fingerprint</span><span class="w" style="--w:44%"></span><span class="v">0.08</span></div>
+          <div class="factor"><span class="n">Card-not-present channel</span><span class="w" style="--w:30%"></span><span class="v">0.04</span></div>
+        </div>
+
+        <div class="sec">
+          <h4>Rules triggered</h4>
+          <div class="rulehit">
+            <span class="rid">R-014</span>
+            <span class="rn">Terminal country ≠ billing country</span>
+            <span class="rw">+30</span>
+          </div>
+          <div class="rulehit">
+            <span class="rid">R-027</span>
+            <span class="rn">≥ 5 txns / card / 24h</span>
+            <span class="rw">+25</span>
+          </div>
+          <div class="rulehit">
+            <span class="rid">R-009</span>
+            <span class="rn">Amount &gt; 20× card baseline</span>
+            <span class="rw">+20</span>
+          </div>
+        </div>
+
+        <div class="sec">
+          <h4>Network links</h4>
+          <dl class="kv">
+            <dt>Shared device</dt><dd class="mono" style="font-size:11px">d_9f2a…</dd>
+            <dt>Linked cards</dt><dd>5</dd>
+            <dt>Linked emails</dt><dd>2</dd>
+            <dt>Known ring</dt><dd style="color:var(--red)">RING-118</dd>
+          </dl>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 3 — RULES
+     ══════════════════════════════════════════════════════ -->
+<div class="screen-label">03 — Rules &amp; thresholds <span>Deterministic layer that sits in front of the model.</span></div>
+<div class="wrap">
+<div class="app">
+
+  <aside class="side">
+    <div class="side-top">
+      <div class="mark">S</div>
+      <div><b>Sentinel</b><em>Fraud Ops</em></div>
+    </div>
+    <nav class="nav">
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+        Queue <span class="count">38</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l5 2.5v4c0 3-2 5-5 6-3-1-5-3-5-6v-4L8 2z"/></svg>
+        Cases
+      </a>
+      <a href="#" class="on">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10M5 8h6M7 11h2"/></svg>
+        Rules
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 13V8M7 13V4M11 13v-6"/></svg>
+        Analytics
+      </a>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar">JM</div>
+      <div><b>J. Mayenda</b><span>Risk Lead</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <h2>Rules &amp; thresholds</h2>
+      <div class="sep"></div>
+      <span class="meta">v2.14.0 · last deployed 6 days ago by J. Mayenda</span>
+      <div class="top-right">
+        <button class="btn btn-sm">Dry run</button>
+        <button class="btn btn-sm btn-primary">Deploy</button>
+      </div>
+    </div>
+
+    <div class="body" style="display:block;overflow:auto">
+
+      <div style="padding:18px;border-bottom:1px solid var(--line)">
+        <h4 style="font:600 10.5px/1 -apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:16px">Decision thresholds</h4>
+
+        <div class="thr">
+          <label>Review above</label>
+          <input type="range" min="5" max="90" value="35">
+          <span class="val">0.35</span>
+        </div>
+        <div class="thr">
+          <label>Hard block above</label>
+          <input type="range" min="10" max="99" value="70">
+          <span class="val">0.70</span>
+        </div>
+
+        <p style="font-size:12px;color:var(--ink-2);max-width:620px;line-height:1.55;margin-top:4px">
+          Estimated impact at current thresholds: <b style="color:var(--ink)">147 blocks/day</b>,
+          <b style="color:var(--ink)">38 reviews/day</b>, projected false-positive rate
+          <b style="color:var(--green)">2.1%</b>. Lowering the block threshold to 0.60 would catch an
+          estimated 12 additional fraud cases per day at a cost of ~45 extra false positives.
+        </p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:44px">On</th>
+            <th style="width:64px">ID</th>
+            <th>Rule</th>
+            <th style="width:80px">Action</th>
+            <th class="num" style="width:80px">Hits 24h</th>
+            <th class="num" style="width:80px">Precision</th>
+            <th class="num" style="width:90px">Avg latency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="sw"></span></td>
+            <td class="mono">R-014</td>
+            <td>Terminal country ≠ billing country <span style="color:var(--ink-3)">AND</span> amount &gt; $500</td>
+            <td><span class="pill block">Block</span></td>
+            <td class="num">218</td>
+            <td class="num" style="color:var(--green)">81%</td>
+            <td class="num mono">0.3ms</td>
+          </tr>
+          <tr>
+            <td><span class="sw"></span></td>
+            <td class="mono">R-027</td>
+            <td>≥ 5 transactions per card in 24h</td>
+            <td><span class="pill review">Review</span></td>
+            <td class="num">1,402</td>
+            <td class="num" style="color:var(--green)">44%</td>
+            <td class="num mono">0.1ms</td>
+          </tr>
+          <tr>
+            <td><span class="sw"></span></td>
+            <td class="mono">R-009</td>
+            <td>Amount &gt; 20× card's 90-day average</td>
+            <td><span class="pill review">Review</span></td>
+            <td class="num">96</td>
+            <td class="num" style="color:var(--amber)">38%</td>
+            <td class="num mono">0.4ms</td>
+          </tr>
+          <tr>
+            <td><span class="sw"></span></td>
+            <td class="mono">R-031</td>
+            <td>≥ 3 distinct cards share one device fingerprint in 1h</td>
+            <td><span class="pill block">Block</span></td>
+            <td class="num">41</td>
+            <td class="num" style="color:var(--green)">93%</td>
+            <td class="num mono">1.2ms</td>
+          </tr>
+          <tr>
+            <td><span class="sw"></span></td>
+            <td class="mono">R-005</td>
+            <td>BIN attack pattern — ≥ 8 declines on same BIN prefix in 10m</td>
+            <td><span class="pill block">Block</span></td>
+            <td class="num">7</td>
+            <td class="num" style="color:var(--green)">100%</td>
+            <td class="num mono">0.2ms</td>
+          </tr>
+          <tr>
+            <td><span class="sw off"></span></td>
+            <td class="mono">R-018</td>
+            <td>Cash advance at non-bank ATM outside home country</td>
+            <td><span class="pill review">Review</span></td>
+            <td class="num">0</td>
+            <td class="num" style="color:var(--ink-3)">—</td>
+            <td class="num mono">0.1ms</td>
+          </tr>
+          <tr>
+            <td><span class="sw"></span></td>
+            <td class="mono">R-022</td>
+            <td>Crypto or gift-card MCC <span style="color:var(--ink-3)">AND</span> card age &lt; 30 days</td>
+            <td><span class="pill review">Review</span></td>
+            <td class="num">63</td>
+            <td class="num" style="color:var(--amber)">51%</td>
+            <td class="num mono">0.1ms</td>
+          </tr>
+          <tr>
+            <td><span class="sw"></span></td>
+            <td class="mono">R-002</td>
+            <td>Impossible travel — two card-present txns &gt; 800km apart in &lt; 2h</td>
+            <td><span class="pill block">Block</span></td>
+            <td class="num">12</td>
+            <td class="num" style="color:var(--green)">88%</td>
+            <td class="num mono">2.8ms</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="padding:14px 18px;border-top:1px solid var(--line);background:var(--surface-2);display:flex;align-items:center;gap:14px">
+        <span style="font-size:12px;color:var(--ink-2)">
+          Rules run before the model. A hard block short-circuits scoring entirely, which is why latency stays under 3ms.
+        </span>
+        <button class="btn btn-sm" style="margin-left:auto">New rule</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 4 — MODEL PERFORMANCE
+     ══════════════════════════════════════════════════════ -->
+<div class="screen-label">04 — Model performance <span>What the risk team reviews weekly.</span></div>
+<div class="wrap">
+<div class="app" style="flex-direction:column;min-height:640px">
+
+  <div class="top" style="border-bottom:1px solid var(--line)">
+    <div class="mark" style="width:22px;height:22px;line-height:22px">S</div>
+    <h2 style="margin-left:2px">Model performance</h2>
+    <div class="sep"></div>
+    <span class="meta">Logistic Regression &amp; Random Forest &bull; SMOTE Imbalance Optimization</span>
+    <div class="top-right">
+      <button class="btn btn-sm">Last 7 days</button>
+      <button class="btn btn-sm">Compare versions</button>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="lbl">AUC-ROC</div>
+      <div class="big">1.000</div>
+      <div class="sub"><b class="down">▲ 0.05</b> vs baseline</div>
+    </div>
+    <div class="card">
+      <div class="lbl">Precision (RF)</div>
+      <div class="big">100.0%</div>
+      <div class="sub"><b class="down">0 False Alarms</b></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Recall (LR)</div>
+      <div class="big">97.1%</div>
+      <div class="sub"><b class="down">33 / 34 caught</b></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Net fraud prevented</div>
+      <div class="big">$1.24M</div>
+      <div class="sub">7-day rolling · net of FP cost</div>
+    </div>
+  </div>
+
+  <div class="ana-grid" style="flex:1">
+
+    <div>
+      <h4 style="font:600 10.5px/1 -apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px">Precision–recall curve</h4>
+
+      <svg viewBox="0 0 340 210" style="width:100%;height:210px">
+        <!-- grid -->
+        <g stroke="#EDEDEA" stroke-width="1">
+          <line x1="40" y1="20"  x2="320" y2="20"/>
+          <line x1="40" y1="60"  x2="320" y2="60"/>
+          <line x1="40" y1="100" x2="320" y2="100"/>
+          <line x1="40" y1="140" x2="320" y2="140"/>
+          <line x1="40" y1="178" x2="320" y2="178"/>
+          <line x1="40"  y1="20" x2="40"  y2="178"/>
+          <line x1="110" y1="20" x2="110" y2="178"/>
+          <line x1="180" y1="20" x2="180" y2="178"/>
+          <line x1="250" y1="20" x2="250" y2="178"/>
+          <line x1="320" y1="20" x2="320" y2="178"/>
+        </g>
+
+        <!-- axes -->
+        <line x1="40" y1="178" x2="320" y2="178" stroke="#D6D6D2" stroke-width="1"/>
+        <line x1="40" y1="20"  x2="40"  y2="178" stroke="#D6D6D2" stroke-width="1"/>
+
+        <!-- baseline -->
+        <line x1="40" y1="178" x2="320" y2="20" stroke="#8C929C" stroke-width="1" stroke-dasharray="4 4"/>
+
+        <!-- PR curve -->
+        <path d="M40,26 C82,32 118,58 156,90 S232,140 320,158"
+              fill="none" stroke="#1E3A5F" stroke-width="2" stroke-linecap="round"/>
+
+        <!-- operating point -->
+        <circle cx="156" cy="90" r="4" fill="#fff" stroke="#1E3A5F" stroke-width="2"/>
+        <line x1="156" y1="90" x2="156" y2="178" stroke="#1E3A5F" stroke-width="1" stroke-dasharray="2 3" opacity=".5"/>
+        <line x1="40"  y1="90" x2="156" y2="90"  stroke="#1E3A5F" stroke-width="1" stroke-dasharray="2 3" opacity=".5"/>
+
+        <!-- axis labels -->
+        <g font-family="-apple-system,sans-serif" font-size="9.5" fill="#8C929C">
+          <text x="40"  y="194">0.0</text>
+          <text x="105" y="194">0.2</text>
+          <text x="175" y="194">0.4</text>
+          <text x="245" y="194">0.6</text>
+          <text x="308" y="194">0.8</text>
+          <text x="180" y="207" text-anchor="middle">Recall</text>
+
+          <text x="34" y="181" text-anchor="end">0.0</text>
+          <text x="34" y="143" text-anchor="end">0.3</text>
+          <text x="34" y="103" text-anchor="end">0.6</text>
+          <text x="34" y="63"  text-anchor="end">0.8</text>
+          <text x="34" y="23"  text-anchor="end">1.0</text>
+          <text x="12" y="100" text-anchor="middle" transform="rotate(-90 12 100)">Precision</text>
+        </g>
+      </svg>
+
+      <div class="legend-row">
+        <span><i></i>Random Forest (Ensemble)</span>
+        <span><i class="dash"></i>Random baseline</span>
+        <span><b style="color:var(--ink)">◦</b> Operating point @ optimal F1</span>
+      </div>
+    </div>
+
+    <div>
+      <h4 style="font:600 10.5px/1 -apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px">Confusion matrix — Test partition (20,000 txns)</h4>
+
+      <div class="cm">
+        <div></div>
+        <div class="h">Predicted legit</div>
+        <div class="h">Predicted fraud</div>
+
+        <div class="rl">Actual legit</div>
+        <div class="cell tn">19,966<small>true negative</small></div>
+        <div class="cell fp">0<small>false positive · 0.0%</small></div>
+
+        <div class="rl">Actual fraud</div>
+        <div class="cell fn">4<small>false negative</small></div>
+        <div class="cell tp">30<small>true positive (88.2%)</small></div>
+      </div>
+
+      <div style="margin-top:26px">
+        <h4 style="font:600 10.5px/1 -apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px">Supporting metrics</h4>
+        <table class="metrics">
+          <tr><td>False positive rate</td><td>0.00%</td></tr>
+          <tr><td>Recall (Random Forest)</td><td>88.2%</td></tr>
+          <tr><td>Recall (Logistic Regression)</td><td>97.1%</td></tr>
+          <tr><td>Avg decision latency</td><td>0.8 ms</td></tr>
+          <tr><td>Test accuracy</td><td>99.98%</td></tr>
+          <tr><td>Fraud value protected</td><td>$88,420</td></tr>
+          <tr><td style="font-weight:600">Decision consensus</td><td style="color:var(--green)">Active</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+</body>
+</html>
